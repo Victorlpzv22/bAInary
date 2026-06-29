@@ -131,7 +131,12 @@ def lift(
             log.info("Cache hit for %s (%s)", path, sha[:8])
             return hit
 
-    chosen = _resolve_backend(backend, backend_instance, registry)
+    try:
+        chosen = _resolve_backend(backend, backend_instance, registry)
+    except (KeyError, RuntimeError) as e:
+        raise LifterError(
+            f"no backend available ({e}). Set GHIDRA_HOME or pass backend_instance."
+        ) from e
     try:
         artifact_dict = chosen.lift(path, timeout_s=timeout_s)
     except LifterError:
