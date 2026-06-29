@@ -41,6 +41,13 @@ class CallGraph:
         """Build a call graph from a BinaryArtifact."""
         g = nx.DiGraph()
         for fn in artifact.functions:
+            # A function is "external" if it's a thunk (PLT wrapper for an
+            # imported function). Note: true imports are not in
+            # artifact.functions at all (they're in artifact.imports).
+            # A thunk here is a wrapper that the binary defines to
+            # forward calls to the import. We mark it external so
+            # callers/callees queries can distinguish "internal logic"
+            # from "glue to library".
             node = FunctionNode(
                 address=fn.address,
                 name=fn.name,
@@ -51,6 +58,9 @@ class CallGraph:
                 size_bytes=fn.size_bytes,
             )
             g.add_node(fn.address, node=node)
+        # Edges to callees not in the graph (e.g. external imports) are
+        # dropped — those callees aren't in artifact.functions, so they
+        # have no node here. This is by design; the graph is internal-only.
         for fn in artifact.functions:
             for callee in fn.callees:
                 if callee.address in g:
