@@ -20,7 +20,8 @@ log = logging.getLogger(__name__)
 _DEFAULT_CACHE_ROOT = Path(
     os.environ.get("BAINARY_CACHE_DIR", str(Path.home() / ".cache" / "bainary"))
 )
-_SUPPORTED_FORMATS = {"PE", "ELF"}
+_SUPPORTED_FORMATS = {"PE", "ELF", "MACHO"}
+_SUPPORTED_ARCHES = {"x86", "x64", "arm", "arm64"}
 
 
 def _sha256_of(path: Path) -> str:
@@ -56,6 +57,8 @@ def _precheck_with_lief(path: Path) -> None:
         fmt = "PE"
     elif "ELF" in fmt:
         fmt = "ELF"
+    elif "MACHO" in fmt or "MACH-O" in fmt or "FAT" in fmt:
+        fmt = "MACHO"
     else:
         raise ValueError(
             f"format {fmt!r} not supported; supported: {sorted(_SUPPORTED_FORMATS)}"
@@ -66,7 +69,7 @@ def _precheck_with_lief(path: Path) -> None:
         )
 
     machine = _detect_machine(binary)
-    if machine == "x64" or machine == "x86":
+    if machine in _SUPPORTED_ARCHES:
         return
     if machine is None:
         return
@@ -92,7 +95,9 @@ def _detect_machine(binary: Any) -> str | None:
             return "x64"
         if "i386" in machine or "i686" in machine or "i486" in machine or "x86" in machine:
             return "x86"
-        if "arm" in machine or "aarch" in machine:
+        if "aarch64" in machine or "arm64" in machine:
+            return "arm64"
+        if "arm" in machine or "aarch" in machine or "thumb" in machine:
             return "arm"
         if "mips" in machine:
             return "mips"

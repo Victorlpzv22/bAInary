@@ -37,11 +37,14 @@ class CallingConvention(StrEnum):
 class BinaryFormat(StrEnum):
     PE = "PE"
     ELF = "ELF"
+    MACHO = "MACHO"
 
 
 class Arch(StrEnum):
     x86 = "x86"
     x64 = "x64"
+    arm = "arm"
+    arm64 = "arm64"
 
 
 class Endianness(StrEnum):

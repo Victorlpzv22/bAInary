@@ -71,11 +71,13 @@ def test_cli_no_cache_flag(tmp_path, monkeypatch):
 
 
 def test_cli_unsupported_format_exits_nonzero(tmp_path):
-    binary = tmp_path / "x.macho"
-    binary.write_bytes(b"\xcf\xfa\xed\xfe" + b"\x00" * 20)
+    # WASM: not a supported binary format
+    binary = tmp_path / "x.wasm"
+    binary.write_bytes(b"\x00asm" + b"\x01\x00\x00\x00" + b"\x00" * 20)
     out_json = tmp_path / "out.json"
 
     runner = CliRunner()
     result = runner.invoke(app, [str(binary), "-o", str(out_json)])
     assert result.exit_code != 0
-    assert "format" in (result.stdout + (result.stderr or "")).lower()
+    assert "parse" in (result.stdout + (result.stderr or "")).lower() or \
+           "format" in (result.stdout + (result.stderr or "")).lower()

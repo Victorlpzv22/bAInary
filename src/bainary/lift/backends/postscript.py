@@ -55,8 +55,12 @@ def _endianness(language):
 
 
 def _arch(language):
-    proc = str(language.getProcessor())
+    proc = str(language.getProcessor()).lower()
     sz = language.getLanguageDescription().getSize()  # in bits
+    if "x86" in proc or "ia32" in proc:
+        return "x64" if sz == 64 else "x86"
+    if "arm" in proc or "aarch" in proc:
+        return "arm64" if sz == 64 else "arm"
     if sz == 64:
         return "x64"
     if sz == 32:
@@ -65,12 +69,14 @@ def _arch(language):
 
 
 def _format(program):
-    """Detect 'PE' or 'ELF' from the loaded binary's executable format."""
+    """Detect 'PE', 'ELF', or 'MACHO' from the loaded binary's format."""
     fmt = str(program.getExecutableFormat()).upper()
     if "PE" in fmt or "PORTABLE EXECUTABLE" in fmt:
         return "PE"
     if "ELF" in fmt:
         return "ELF"
+    if "MACHO" in fmt or "MACH-O" in fmt or "FAT" in fmt:
+        return "MACHO"
     return "UNKNOWN"
 
 

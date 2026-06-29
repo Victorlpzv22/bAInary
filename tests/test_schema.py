@@ -61,6 +61,31 @@ def test_format_enum_rejects_invalid():
         BinaryArtifactSchema.model_validate(data)
 
 
+def test_macho_and_arm_are_valid():
+    """Mach-O and ARM/arm64 are now in the MVP scope."""
+    for fmt, arch in [("MACHO", "arm64"), ("MACHO", "arm"), ("ELF", "arm"), ("PE", "x64")]:
+        data = {
+            "schema_version": SCHEMA_VERSION,
+            "binary": {
+                "path": "/tmp/x",
+                "sha256": "a" * 64,
+                "format": fmt,
+                "arch": arch,
+                "endianness": "little",
+                "entry_point": "0x0",
+                "base_address": "0x0",
+            },
+            "sections": [],
+            "imports": [],
+            "exports": [],
+            "strings": [],
+            "functions": [],
+        }
+        artifact = BinaryArtifactSchema.model_validate(data)
+        assert artifact.binary.format == fmt
+        assert artifact.binary.arch == arch
+
+
 def test_function_with_all_fields():
     fn = FunctionSchema.model_validate({
         "address": "0x401000",

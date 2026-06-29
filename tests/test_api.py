@@ -125,24 +125,27 @@ def test_lift_wraps_backend_exception_in_lifter_error(tmp_path):
 
 
 def test_lift_rejects_unsupported_format_via_lief(tmp_path):
-    binary = tmp_path / "x.macho"
-    binary.write_bytes(b"\xcf\xfa\xed\xfe" + b"\x00" * 20)
+    # WASM magic: \x00asm — LIEF doesn't support it, so lief.parse()
+    # returns None and we raise ValueError("lief could not parse").
+    binary = tmp_path / "x.wasm"
+    binary.write_bytes(b"\x00asm" + b"\x01\x00\x00\x00" + b"\x00" * 20)
     from bainary.lift.backends.base import BackendRegistry
     reg = BackendRegistry()
     reg.register(FakeBackend())
 
-    with pytest.raises(ValueError, match="format"):
+    with pytest.raises(ValueError, match="could not parse|not supported"):
         lift(binary, backend="fake", registry=reg, use_cache=False)
 
 
 def test_lift_rejects_unsupported_arch(tmp_path):
     import struct
+    # EM_MIPS = 0x08 — MIPS is not in the MVP scope
     e_ident = b"\x7fELF" + bytes([1, 1, 1, 0]) + b"\x00" * 8
     e_type = struct.pack("<H", 2)
-    e_machine = struct.pack("<H", 0x28)
+    e_machine = struct.pack("<H", 0x08)  # EM_MIPS
     e_version = struct.pack("<I", 1)
     header = e_ident + e_type + e_machine + e_version + b"\x00" * 40
-    binary = tmp_path / "x.arm.elf"
+    binary = tmp_path / "x.mips.elf"
     binary.write_bytes(header)
 
     from bainary.lift.backends.base import BackendRegistry
