@@ -144,5 +144,31 @@ class CallGraph:
         """Return the set of function names with no callers (same as orphans)."""
         return self.orphans()
 
+    def cycles(self) -> list[set[str]]:
+        """Return a list of strongly-connected components with >1 node.
+
+        Each SCC is a set of function names that form a cycle.
+        """
+        sccs = nx.strongly_connected_components(self._graph)
+        return [
+            {self._addr_to_name(addr) for addr in scc}
+            for scc in sccs
+            if len(scc) > 1
+        ]
+
+    def shortest_path(self, source: str, target: str) -> list[str] | None:
+        """Return the shortest call path from ``source`` to ``target``.
+
+        Returns a list of function names, or ``None`` if no path exists.
+        If source == target, returns ``[source]``.
+        """
+        src_addr = self._resolve_name(source)
+        tgt_addr = self._resolve_name(target)
+        try:
+            path = nx.shortest_path(self._graph, src_addr, tgt_addr)
+        except nx.NetworkXNoPath:
+            return None
+        return [self._addr_to_name(addr) for addr in path]
+
     def _addr_to_name(self, addr: str) -> str:
         return self._graph.nodes[addr]["node"].name  # type: ignore[no-any-return]

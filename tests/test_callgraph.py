@@ -170,3 +170,43 @@ def test_duplicate_names_raise():
     cg = CallGraph.from_artifact(artifact)
     with pytest.raises(GraphError, match="duplicate"):
         cg.callers_of("foo")
+
+
+def _cycle_artifact() -> BinaryArtifact:
+    """Artifact with a cycle: a → b → a, plus c → a."""
+    return _make_artifact([
+        _fn("0x1000", "a", callees=[{"address": "0x2000", "name": "b", "is_external": False}]),
+        _fn("0x2000", "b", callees=[{"address": "0x1000", "name": "a", "is_external": False}]),
+        _fn("0x3000", "c", callees=[{"address": "0x1000", "name": "a", "is_external": False}]),
+    ])
+
+
+def test_cycles_detects_scc():
+    cg = CallGraph.from_artifact(_cycle_artifact())
+    cycles = cg.cycles()
+    assert len(cycles) == 1
+    assert cycles[0] == {"a", "b"}
+
+
+def test_cycles_no_cycle():
+    cg = CallGraph.from_artifact(_chain_artifact())
+    assert cg.cycles() == []
+
+
+def test_shortest_path():
+    cg = CallGraph.from_artifact(_chain_artifact())
+    path = cg.shortest_path("main", "c")
+    assert path == ["main", "a", "b", "c"]
+
+
+def test_shortest_path_none():
+    cg = CallGraph.from_artifact(_chain_artifact())
+    # c has no callees, so no path from c to main
+    path = cg.shortest_path("c", "main")
+    assert path is None
+
+
+def test_shortest_path_same_node():
+    cg = CallGraph.from_artifact(_chain_artifact())
+    path = cg.shortest_path("main", "main")
+    assert path == ["main"]
