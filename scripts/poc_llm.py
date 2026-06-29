@@ -115,8 +115,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("binary", type=Path, help="Path to a PE or ELF binary")
     parser.add_argument(
-        "--backend", default="lief_capstone",
-        help="Lifting backend (default: lief_capstone, fast; use ghidra_headless for real pseudo-C)",
+        "--backend", default="ghidra_headless",
+        help="Lifting backend (default: ghidra_headless, produces real pseudo-C; lief_capstone is fast but no pseudo-C)",
     )
     parser.add_argument(
         "--model", default=DEFAULT_MODEL,
@@ -148,8 +148,22 @@ def main() -> int:
 
     # 3. Pick functions and refine with LLM
     picked = pick_smallest_functions(cg, args.num_functions)
+    if not picked and args.backend != "ghidra_headless":
+        # Auto-fallback: lief_capstone doesn't produce pseudo-C, so if
+        # the user didn't explicitly choose ghidra_headless, retry.
+        print(
+            f"  no functions with pseudo-C from backend={args.backend}; "
+            f"retrying with ghidra_headless (slower, but produces real pseudo-C)..."
+        )
+        artifact = lift(args.binary, backend="ghidra_headless", use_cache=False)
+        cg = CallGraph.from_artifact(artifact)
+        picked = pick_smallest_functions(cg, args.num_functions)
     if not picked:
-        print("ERROR: no functions with pseudo-C found. Use backend=ghidra_headless for real decompilation.", file=sys.stderr)
+        print(
+            "ERROR: no functions with pseudo-C found. "
+            "Ghidra may not be installed (set GHIDRA_HOME).",
+            file=sys.stderr,
+        )
         return 1
 
     print(f"[3/3] Refining {len(picked)} functions with model={args.model}...")
