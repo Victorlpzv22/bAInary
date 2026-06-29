@@ -172,3 +172,28 @@ class CallGraph:
 
     def _addr_to_name(self, addr: str) -> str:
         return self._graph.nodes[addr]["node"].name  # type: ignore[no-any-return]
+
+    def to_graphml(self, path: str | Path) -> None:
+        """Serialize the call graph to a GraphML file.
+
+        GraphML is an XML-based interchange format supported by many
+        graph tools (Gephi, yEd, Cytoscape).
+        """
+        g = nx.DiGraph()
+        for addr, data in self._graph.nodes(data=True):
+            node = data["node"]
+            g.add_node(
+                addr,
+                name=node.name,
+                signature=node.signature,
+                is_external=node.is_external,
+                is_thunk=node.is_thunk,
+                size_bytes=node.size_bytes,
+            )
+        g.add_edges_from(self._graph.edges())
+        nx.write_graphml(g, str(path))
+
+    def to_pickle(self, path: str | Path) -> None:
+        """Serialize the call graph (with full FunctionNode metadata) to pickle."""
+        import pickle
+        Path(path).write_bytes(pickle.dumps(self._graph))

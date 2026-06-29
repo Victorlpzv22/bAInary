@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import pickle
+
+import networkx as nx
 import pytest
 
 from bainary.graph import CallGraph, FunctionNode, GraphError
@@ -210,3 +213,23 @@ def test_shortest_path_same_node():
     cg = CallGraph.from_artifact(_chain_artifact())
     path = cg.shortest_path("main", "main")
     assert path == ["main"]
+
+
+def test_to_graphml(tmp_path):
+    cg = CallGraph.from_artifact(_chain_artifact())
+    path = tmp_path / "graph.graphml"
+    cg.to_graphml(path)
+    assert path.exists()
+    loaded = nx.read_graphml(path)
+    assert loaded.number_of_nodes() == 5
+
+
+def test_to_pickle(tmp_path):
+    cg = CallGraph.from_artifact(_chain_artifact())
+    path = tmp_path / "graph.pkl"
+    cg.to_pickle(path)
+    assert path.exists()
+    loaded = pickle.loads(path.read_bytes())
+    assert isinstance(loaded, nx.DiGraph)
+    assert loaded.number_of_nodes() == 5
+    assert loaded.number_of_edges() == 3
