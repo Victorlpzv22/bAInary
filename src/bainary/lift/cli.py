@@ -16,7 +16,7 @@ app = typer.Typer(
 )
 
 
-@app.command()  # type: ignore[untyped-decorator]  # typer has no stubs
+@app.command()  # type: ignore[untyped-decorator]
 def main(
     binary: Path = typer.Argument(  # noqa: B008
         ..., exists=True, file_okay=True, dir_okay=False, readable=True

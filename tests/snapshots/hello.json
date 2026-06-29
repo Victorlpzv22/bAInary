@@ -6,7 +6,7 @@
     "endianness": "little",
     "entry_point": "0x404008",
     "format": "ELF",
-    "path": "/home/victor/Proyectos/bAInary/tests/fixtures/hello_elf64/hello.elf",
+    "path": "<snapshot-path>",
     "sha256": "60870b7a1816d4c358b865f22add694b048449f81858d3aee05ae131a0ce87ed"
   },
   "exports": [],

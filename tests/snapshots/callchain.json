@@ -6,7 +6,7 @@
     "endianness": "little",
     "entry_point": "0x404000",
     "format": "ELF",
-    "path": "/home/victor/Proyectos/bAInary/tests/fixtures/callchain_elf64/callchain.elf",
+    "path": "<snapshot-path>",
     "sha256": "a0bd9dc2d2f5dde8f9c9578286b40ea51d3c7317730ecc184f92204084839bf9"
   },
   "exports": [],

@@ -47,18 +47,32 @@ def _fixture_paths() -> list[Path]:
 @pytest.mark.parametrize("fixture", _fixture_paths(), ids=lambda p: p.stem)
 def test_snapshot_matches_golden(ghidra_home, fixture, snapshot_dir, update_snapshots):
     artifact = lift(fixture, use_cache=False, timeout_s=300)
-    actual_str = json.dumps(json.loads(artifact.to_json_str()), indent=2, sort_keys=True)
-    actual = json.loads(actual_str)
+    actual = _normalize_for_snapshot(json.loads(artifact.to_json_str()))
+    actual_str = json.dumps(actual, indent=2, sort_keys=True)
     golden = snapshot_dir / f"{fixture.stem}.json"
 
     if update_snapshots or not golden.exists():
         golden.write_text(actual_str)
         pytest.skip(f"snapshot written to {golden}; review and commit")
 
-    expected = json.loads(json.dumps(json.loads(golden.read_text()), indent=2, sort_keys=True))
+    expected = _normalize_for_snapshot(json.loads(golden.read_text()))
+
     assert actual == expected, (
         f"Snapshot mismatch for {fixture.name}.\n"
         f"Golden: {golden}\n"
         f"Run: pytest tests/test_snapshot.py --update-snapshots -m slow\n"
         f"Then review the diff and commit if the change is intentional."
     )
+
+
+def _normalize_for_snapshot(d: dict) -> dict:
+    """Normalize machine-dependent fields so snapshot comparison is portable."""
+    import copy
+
+    d = copy.deepcopy(d)
+    if "binary" in d and isinstance(d["binary"], dict):
+        d["binary"] = dict(d["binary"])
+        # Replace absolute path with a portable relative path
+        if "path" in d["binary"]:
+            d["binary"]["path"] = "<snapshot-path>"
+    return d
