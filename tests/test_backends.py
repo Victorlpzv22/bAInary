@@ -8,19 +8,24 @@ import pytest
 from bainary.lift.backends.base import BackendRegistry, LifterBackend
 
 
-def test_backend_registry_default_is_ghidra_headless():
+def test_backend_registry_has_at_least_one_backend():
     from bainary.lift.backends import default_registry
     reg = default_registry()
     if not reg._backends:  # type: ignore[attr-defined]
-        pytest.skip("Ghidra not installed")
-    assert reg.default_name() == "ghidra_headless"
+        pytest.skip("No backends installed")
+    # Ghidra is the preferred default; lief_capstone is the fallback
+    assert reg.default_name() in ("ghidra_headless", "lief_capstone")
 
 
 def test_backend_registry_resolve_known_backend():
     from bainary.lift.backends import default_registry
     reg = default_registry()
     if "ghidra_headless" not in reg._backends:  # type: ignore[attr-defined]
-        pytest.skip("Ghidra not installed")
+        if "lief_capstone" in reg._backends:  # type: ignore[attr-defined]
+            backend = reg.resolve("lief_capstone")
+            assert backend.name == "lief_capstone"
+            return
+        pytest.skip("No backends installed")
     backend = reg.resolve("ghidra_headless")
     assert backend.name == "ghidra_headless"
 

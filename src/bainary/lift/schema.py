@@ -198,7 +198,7 @@ class FunctionSchema(_BaseModel):
     assembly: str
     pseudocode: str | None = None
     pseudocode_error: str | None = None
-    decompiler: Literal["ghidra"] = "ghidra"
+    decompiler: Literal["ghidra", "lief_capstone"] = "ghidra"
     stack_frame: StackFrameSchema = Field(default_factory=StackFrameSchema)  # type: ignore[arg-type]
 
     @field_validator("address")
