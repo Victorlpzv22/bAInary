@@ -30,7 +30,7 @@ pytestmark = pytest.mark.slow
 def ghidra_home() -> Path:
     if not str(GHIDRA_HOME) or not GHIDRA_HOME.exists():
         pytest.skip("GHIDRA_HOME not set or missing")
-    if not (GHIDRA_HOME / "Ghidra" / "Features" / "Base" / "application.properties").exists():
+    if not (GHIDRA_HOME / "Ghidra" / "application.properties").exists():
         pytest.skip(f"GHIDRA_HOME ({GHIDRA_HOME}) is not a valid Ghidra install")
     return GHIDRA_HOME
 
@@ -47,14 +47,15 @@ def _fixture_paths() -> list[Path]:
 @pytest.mark.parametrize("fixture", _fixture_paths(), ids=lambda p: p.stem)
 def test_snapshot_matches_golden(ghidra_home, fixture, snapshot_dir, update_snapshots):
     artifact = lift(fixture, use_cache=False, timeout_s=300)
-    actual = json.loads(artifact.to_json_str())
+    actual_str = json.dumps(json.loads(artifact.to_json_str()), indent=2, sort_keys=True)
+    actual = json.loads(actual_str)
     golden = snapshot_dir / f"{fixture.stem}.json"
 
     if update_snapshots or not golden.exists():
-        golden.write_text(json.dumps(actual, indent=2, sort_keys=True))
+        golden.write_text(actual_str)
         pytest.skip(f"snapshot written to {golden}; review and commit")
 
-    expected = json.loads(golden.read_text())
+    expected = json.loads(json.dumps(json.loads(golden.read_text()), indent=2, sort_keys=True))
     assert actual == expected, (
         f"Snapshot mismatch for {fixture.name}.\n"
         f"Golden: {golden}\n"

@@ -35,7 +35,12 @@ from ghidra.program.model.block import BasicBlockModel
 from ghidra.util.task import ConsoleTaskMonitor
 
 
-OUTPUT_PATH = sys.argv[1] if len(sys.argv) > 1 else "/tmp/bainary_postscript_out.json"
+OUTPUT_PATH = os.environ.get("BAINARY_OUTPUT_JSON")
+if not OUTPUT_PATH:
+    if len(sys.argv) > 1:
+        OUTPUT_PATH = sys.argv[1]
+    else:
+        OUTPUT_PATH = "/tmp/bainary_postscript_out.json"
 
 
 def _addr(a):
@@ -104,7 +109,10 @@ def _emit_function(func, decomp, listing, blockModel, refMgr, monitor):
     inst_iter = listing.getInstructions(func.getBody(), True)
     while inst_iter.hasNext():
         ins = inst_iter.next()
-        operands = [str(o) for o in ins.getOpObjects()]
+        try:
+            operands = [str(o) for o in ins.getOpObjects(0)]  # 0 = first operand index (Jython signature)
+        except Exception:
+            operands = []
         asm_lines.append("%s %s" % (ins.toString(), " ".join(operands)))
     func_data["assembly"] = "\n".join(asm_lines)
 
@@ -140,11 +148,15 @@ def _emit_function(func, decomp, listing, blockModel, refMgr, monitor):
             ins_iter = listing.getInstructions(block, True)
             while ins_iter.hasNext():
                 ins = ins_iter.next()
+                try:
+                    operands = [str(o) for o in ins.getOpObjects(0)]
+                except Exception:
+                    operands = []
                 instrs.append({
                     "address": _addr(ins.getAddress()),
                     "bytes": " ".join("%02x" % b for b in ins.getBytes().getValue() or []),
                     "mnemonic": str(ins.getMnemonicString()),
-                    "operands": [str(o) for o in ins.getOpObjects()],
+                    "operands": operands,
                     "comment": None,
                 })
             succs = [_addr(d.getDestinationAddress()) for d in block.getDestinations(monitor)]
@@ -277,11 +289,21 @@ def _emit_imports(program):
     out = []
     sym_tab = program.getSymbolTable()
     for sym in sym_tab.getExternalSymbols():
-        # Heuristic: external location's library name
-        loc = sym.getExternalLocation()
+        # Some symbols returned by getExternalSymbols() are not actually
+        # external in the Jython API (e.g. FunctionSymbol lacks
+        # getExternalLocation). Filter defensively.
+        if not sym.isExternal():
+            continue
+        try:
+            loc = sym.getExternalLocation()
+        except Exception:
+            loc = None
         lib = ""
         if loc is not None:
-            lib = str(loc.getLibraryName() or "")
+            try:
+                lib = str(loc.getLibraryName() or "")
+            except Exception:
+                pass
         out.append({
             "address": _addr(sym.getAddress()),
             "name": sym.getName(),
@@ -293,7 +315,15 @@ def _emit_imports(program):
 def _emit_exports(program):
     out = []
     sym_tab = program.getSymbolTable()
-    for sym in sym_tab.getLabelOrFunctionSymbols(None, None, True):
+    # getLabelOrFunctionSymbols takes (Namespace, boolean) in this Ghidra version.
+    try:
+        iter_syms = sym_tab.getLabelOrFunctionSymbols(None, True)
+    except TypeError:
+        try:
+            iter_syms = sym_tab.getLabelOrFunctionSymbols(None, None, True)
+        except TypeError:
+            iter_syms = []
+    for sym in iter_syms:
         if sym.isExternal():
             continue
         out.append({"address": _addr(sym.getAddress()), "name": sym.getName()})

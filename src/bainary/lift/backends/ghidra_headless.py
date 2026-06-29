@@ -27,7 +27,9 @@ def _sha256_of(path: Path) -> str:
 
 
 def _read_ghidra_version(ghidra_home: Path) -> str:
-    props = ghidra_home / "Ghidra" / "Features" / "Base" / "application.properties"
+    # application.properties lives at $GHIDRA_HOME/Ghidra/application.properties
+    # in current Ghidra versions (11.x).
+    props = ghidra_home / "Ghidra" / "application.properties"
     if not props.exists():
         raise OSError(
             f"Cannot find Ghidra application.properties at {props}. "
@@ -67,9 +69,11 @@ class GhidraHeadlessBackend(LifterBackend):
         return _read_ghidra_version(self._ghidra_home)
 
     def _analyze_headless_path(self) -> Path:
+        # analyzeHeadless lives at $GHIDRA_HOME/support/analyzeHeadless on
+        # Linux/macOS, or $GHIDRA_HOME/support/analyzeHeadless.bat on Windows.
         if os.name == "nt":
-            return self._ghidra_home / "ghidraRun.bat"
-        return self._ghidra_home / "ghidraRun" / "analyzeHeadless"
+            return self._ghidra_home / "support" / "analyzeHeadless.bat"
+        return self._ghidra_home / "support" / "analyzeHeadless"
 
     def lift(self, path: Path, *, timeout_s: int) -> dict[str, Any]:
         if not path.exists():
@@ -94,7 +98,7 @@ class GhidraHeadlessBackend(LifterBackend):
                 "-import", str(path),
                 "-postScript", str(post_script),
                 "-postScriptArgs", str(out_json),
-                "-deleteProject",
+                "-deleteproject",
             ]
             log.info("Running: %s", " ".join(cmd))
             try:
@@ -103,6 +107,7 @@ class GhidraHeadlessBackend(LifterBackend):
                     timeout=timeout_s,
                     capture_output=True,
                     text=True,
+                    env={**os.environ, "BAINARY_OUTPUT_JSON": str(out_json)},
                 )
             except subprocess.TimeoutExpired as e:
                 raise LifterError(
@@ -127,4 +132,41 @@ class GhidraHeadlessBackend(LifterBackend):
         raw.setdefault("binary", {})["sha256"] = sha
         raw["binary"]["decompiler_version"] = f"ghidra-{version}"
         raw["binary"]["path"] = str(path.resolve())
+
+        # Normalize calling_convention to the schema's enum. Ghidra reports
+        # values like "__stdcall", "processEntry", "unknown" that we map
+        # to the closest enum member.
+        for func in raw.get("functions", []):
+            cc = func.get("calling_convention")
+            if cc is not None:
+                cc_norm = _normalize_calling_convention(cc)
+                func["calling_convention"] = cc_norm
+
+            # Ghidra's iteration order over callers/callees is not stable
+            # across runs (it depends on internal hash ordering). Sort by
+            # (address, name) for deterministic snapshots.
+            for key in ("callers", "callees"):
+                items = func.get(key)
+                if isinstance(items, list):
+                    func[key] = sorted(
+                        items,
+                        key=lambda x: (x.get("address", ""), x.get("name", "")),
+                    )
+
         return raw
+
+
+def _normalize_calling_convention(cc: str) -> str:
+    """Map Ghidra's calling-convention strings to the schema's enum."""
+    s = cc.strip().lower()
+    if s in {"cdecl", "stdcall", "fastcall", "thiscall", "unknown"}:
+        return s
+    if "stdcall" in s:
+        return "stdcall"
+    if "cdecl" in s:
+        return "cdecl"
+    if "fastcall" in s:
+        return "fastcall"
+    if "thiscall" in s:
+        return "thiscall"
+    return "unknown"

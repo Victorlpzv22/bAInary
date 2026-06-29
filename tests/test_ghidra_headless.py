@@ -24,7 +24,7 @@ def ghidra_home() -> Path:
     if not str(GHIDRA_HOME) or not GHIDRA_HOME.exists():
         pytest.skip("GHIDRA_HOME not set or missing")
     # Sanity check: must contain a Ghidra installation with application.properties
-    if not (GHIDRA_HOME / "Ghidra" / "Features" / "Base" / "application.properties").exists():
+    if not (GHIDRA_HOME / "Ghidra" / "application.properties").exists():
         pytest.skip(f"GHIDRA_HOME ({GHIDRA_HOME}) is not a valid Ghidra install")
     return GHIDRA_HOME
 

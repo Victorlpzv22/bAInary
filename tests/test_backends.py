@@ -60,7 +60,7 @@ def test_ghidra_backend_name():
 def test_ghidra_backend_ghidra_version_reads_application_properties(tmp_path):
     from bainary.lift.backends.ghidra_headless import GhidraHeadlessBackend
     ghidra_home = tmp_path / "ghidra"
-    ghidra_props = ghidra_home / "Ghidra" / "Features" / "Base"
+    ghidra_props = ghidra_home / "Ghidra"
     ghidra_props.mkdir(parents=True)
     (ghidra_props / "application.properties").write_text(
         "application.name=Ghidra\napplication.version=11.0.1\n"
@@ -79,7 +79,7 @@ def test_ghidra_backend_ghidra_version_missing_raises(tmp_path):
 def test_ghidra_backend_lift_invokes_subprocess(tmp_path, monkeypatch):
     from bainary.lift.backends.ghidra_headless import GhidraHeadlessBackend
     ghidra_home = tmp_path / "ghidra"
-    props_dir = ghidra_home / "Ghidra" / "Features" / "Base"
+    props_dir = ghidra_home / "Ghidra"
     props_dir.mkdir(parents=True)
     (props_dir / "application.properties").write_text("application.version=11.0.1\n")
 

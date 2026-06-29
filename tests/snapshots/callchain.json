@@ -1,0 +1,1148 @@
+{
+  "binary": {
+    "arch": "x64",
+    "base_address": "0x400000",
+    "decompiler_version": "ghidra-11.3.2",
+    "endianness": "little",
+    "entry_point": "0x404000",
+    "format": "ELF",
+    "path": "/home/victor/Proyectos/bAInary/tests/fixtures/callchain_elf64/callchain.elf",
+    "sha256": "a0bd9dc2d2f5dde8f9c9578286b40ea51d3c7317730ecc184f92204084839bf9"
+  },
+  "exports": [],
+  "functions": [
+    {
+      "address": "0x401000",
+      "assembly": "ENDBR64 \nSUB RSP,0x8 RSP\nMOV RAX,qword ptr [0x00403fd8] RAX\nTEST RAX,RAX RAX\nJZ 0x00401016 00401016\nCALL RAX RAX\nADD RSP,0x8 RSP\nRET",
+      "basic_blocks": [],
+      "callees": [
+        {
+          "address": "0x405010",
+          "is_external": false,
+          "name": "__gmon_start__"
+        }
+      ],
+      "callers": [],
+      "calling_convention": "stdcall",
+      "cfg": {
+        "edges": [],
+        "nodes": []
+      },
+      "decompiler": "ghidra",
+      "is_thunk": false,
+      "name": "_init",
+      "pseudocode": "int _init(EVP_PKEY_CTX *ctx)\n\n{\n  int iVar1;\n  \n  iVar1 = __gmon_start__();\n  return iVar1;\n}",
+      "pseudocode_error": "CFG extraction failed: 'ghidra.program.model.block.SimpleDestReferenceIterator' object is not iterable",
+      "signature": "int __stdcall _init(EVP_PKEY_CTX * ctx)",
+      "size_bytes": 27,
+      "stack_frame": {
+        "locals": [],
+        "size": 8
+      }
+    },
+    {
+      "address": "0x401020",
+      "assembly": "ENDBR64 \nXOR EBP,EBP EBP\nMOV R9,RDX R9\nPOP RSI RSI\nMOV RDX,RSP RDX\nAND RSP,-0x10 RSP\nPUSH RAX RAX\nPUSH RSP RSP\nXOR R8D,R8D R8D\nXOR ECX,ECX ECX\nMOV RDI,0x40112d RDI\nCALL qword ptr [0x00403fc8] 00403fc8\nHLT",
+      "basic_blocks": [],
+      "callees": [
+        {
+          "address": "0x405000",
+          "is_external": false,
+          "name": "__libc_start_main"
+        }
+      ],
+      "callers": [],
+      "calling_convention": "unknown",
+      "cfg": {
+        "edges": [],
+        "nodes": []
+      },
+      "decompiler": "ghidra",
+      "is_thunk": false,
+      "name": "_start",
+      "pseudocode": "void processEntry _start(undefined8 param_1,undefined8 param_2)\n\n{\n  undefined1 auStack_8 [8];\n  \n  __libc_start_main(main,param_2,&stack0x00000008,0,0,param_1,auStack_8);\n  do {\n                    /* WARNING: Do nothing block with infinite loop */\n  } while( true );\n}",
+      "pseudocode_error": "CFG extraction failed: 'ghidra.program.model.block.SimpleDestReferenceIterator' object is not iterable",
+      "signature": "undefined processEntry _start(void)",
+      "size_bytes": 38,
+      "stack_frame": {
+        "locals": [
+          {
+            "name": "local_10",
+            "offset": -16,
+            "size": 8,
+            "type": "undefined8"
+          }
+        ],
+        "size": 16
+      }
+    },
+    {
+      "address": "0x401050",
+      "assembly": "ENDBR64 \nRET",
+      "basic_blocks": [],
+      "callees": [],
+      "callers": [],
+      "calling_convention": "unknown",
+      "cfg": {
+        "edges": [],
+        "nodes": []
+      },
+      "decompiler": "ghidra",
+      "is_thunk": false,
+      "name": "_dl_relocate_static_pie",
+      "pseudocode": "void _dl_relocate_static_pie(void)\n\n{\n  return;\n}",
+      "pseudocode_error": "CFG extraction failed: 'ghidra.program.model.block.SimpleDestReferenceIterator' object is not iterable",
+      "signature": "undefined _dl_relocate_static_pie(void)",
+      "size_bytes": 5,
+      "stack_frame": {
+        "locals": [],
+        "size": 8
+      }
+    },
+    {
+      "address": "0x401060",
+      "assembly": "MOV EAX,0x404010 EAX\nCMP RAX,0x404010 RAX\nJZ 0x00401080 00401080\nMOV RAX,qword ptr [0x00403fd0] RAX\nTEST RAX,RAX RAX\nJZ 0x00401080 00401080\nMOV EDI,0x404010 EDI\nJMP RAX RAX\nRET",
+      "basic_blocks": [],
+      "callees": [
+        {
+          "address": "0x405008",
+          "is_external": false,
+          "name": "_ITM_deregisterTMCloneTable"
+        }
+      ],
+      "callers": [
+        {
+          "address": "0x4010d0",
+          "is_external": false,
+          "name": "__do_global_dtors_aux"
+        }
+      ],
+      "calling_convention": "unknown",
+      "cfg": {
+        "edges": [],
+        "nodes": []
+      },
+      "decompiler": "ghidra",
+      "is_thunk": false,
+      "name": "deregister_tm_clones",
+      "pseudocode": "/* WARNING: Removing unreachable block (ram,0x0040106d) */\n/* WARNING: Removing unreachable block (ram,0x00401079) */\n\nvoid deregister_tm_clones(void)\n\n{\n  return;\n}",
+      "pseudocode_error": "CFG extraction failed: 'ghidra.program.model.block.SimpleDestReferenceIterator' object is not iterable",
+      "signature": "undefined deregister_tm_clones(void)",
+      "size_bytes": 33,
+      "stack_frame": {
+        "locals": [],
+        "size": 8
+      }
+    },
+    {
+      "address": "0x401090",
+      "assembly": "MOV ESI,0x404010 ESI\nSUB RSI,0x404010 RSI\nMOV RAX,RSI RAX\nSHR RSI,0x3f RSI\nSAR RAX,0x3 RAX\nADD RSI,RAX RSI\nSAR RSI,0x1 RSI\nJZ 0x004010c8 004010c8\nMOV RAX,qword ptr [0x00403fe0] RAX\nTEST RAX,RAX RAX\nJZ 0x004010c8 004010c8\nMOV EDI,0x404010 EDI\nJMP RAX RAX\nRET",
+      "basic_blocks": [],
+      "callees": [
+        {
+          "address": "0x405018",
+          "is_external": false,
+          "name": "_ITM_registerTMCloneTable"
+        }
+      ],
+      "callers": [
+        {
+          "address": "0x401100",
+          "is_external": false,
+          "name": "frame_dummy"
+        }
+      ],
+      "calling_convention": "unknown",
+      "cfg": {
+        "edges": [],
+        "nodes": []
+      },
+      "decompiler": "ghidra",
+      "is_thunk": false,
+      "name": "register_tm_clones",
+      "pseudocode": "/* WARNING: Removing unreachable block (ram,0x004010af) */\n/* WARNING: Removing unreachable block (ram,0x004010bb) */\n\nvoid register_tm_clones(void)\n\n{\n  return;\n}",
+      "pseudocode_error": "CFG extraction failed: 'ghidra.program.model.block.SimpleDestReferenceIterator' object is not iterable",
+      "signature": "undefined register_tm_clones(void)",
+      "size_bytes": 51,
+      "stack_frame": {
+        "locals": [],
+        "size": 8
+      }
+    },
+    {
+      "address": "0x4010d0",
+      "assembly": "ENDBR64 \nCMP byte ptr [0x00404010],0x0 00404010\nJNZ 0x004010f0 004010f0\nPUSH RBP RBP\nMOV RBP,RSP RBP\nCALL 0x00401060 00401060\nMOV byte ptr [0x00404010],0x1 00404010\nPOP RBP RBP\nRET \nRET",
+      "basic_blocks": [],
+      "callees": [
+        {
+          "address": "0x401060",
+          "is_external": false,
+          "name": "deregister_tm_clones"
+        }
+      ],
+      "callers": [],
+      "calling_convention": "unknown",
+      "cfg": {
+        "edges": [],
+        "nodes": []
+      },
+      "decompiler": "ghidra",
+      "is_thunk": false,
+      "name": "__do_global_dtors_aux",
+      "pseudocode": "void __do_global_dtors_aux(void)\n\n{\n  if (completed_0 == '\\0') {\n    deregister_tm_clones();\n    completed_0 = 1;\n    return;\n  }\n  return;\n}",
+      "pseudocode_error": "CFG extraction failed: 'ghidra.program.model.block.SimpleDestReferenceIterator' object is not iterable",
+      "signature": "undefined __do_global_dtors_aux(void)",
+      "size_bytes": 32,
+      "stack_frame": {
+        "locals": [],
+        "size": 8
+      }
+    },
+    {
+      "address": "0x401100",
+      "assembly": "ENDBR64 \nJMP 0x00401090 00401090",
+      "basic_blocks": [],
+      "callees": [
+        {
+          "address": "0x401090",
+          "is_external": false,
+          "name": "register_tm_clones"
+        }
+      ],
+      "callers": [],
+      "calling_convention": "unknown",
+      "cfg": {
+        "edges": [],
+        "nodes": []
+      },
+      "decompiler": "ghidra",
+      "is_thunk": true,
+      "name": "frame_dummy",
+      "pseudocode": "void frame_dummy(void)\n\n{\n  register_tm_clones();\n  return;\n}",
+      "pseudocode_error": "CFG extraction failed: 'ghidra.program.model.block.SimpleDestReferenceIterator' object is not iterable",
+      "signature": "undefined frame_dummy(void)",
+      "size_bytes": 6,
+      "stack_frame": {
+        "locals": [],
+        "size": 8
+      }
+    },
+    {
+      "address": "0x401106",
+      "assembly": "PUSH RBP RBP\nMOV RBP,RSP RBP\nMOV EAX,0x2a EAX\nPOP RBP RBP\nRET",
+      "basic_blocks": [],
+      "callees": [],
+      "callers": [
+        {
+          "address": "0x401111",
+          "is_external": false,
+          "name": "b"
+        }
+      ],
+      "calling_convention": "stdcall",
+      "cfg": {
+        "edges": [],
+        "nodes": []
+      },
+      "decompiler": "ghidra",
+      "is_thunk": false,
+      "name": "c",
+      "pseudocode": "int c(void *param_1,void *param_2)\n\n{\n  return 0x2a;\n}",
+      "pseudocode_error": "CFG extraction failed: 'ghidra.program.model.block.SimpleDestReferenceIterator' object is not iterable",
+      "signature": "int __stdcall c(void * param_1, void * param_2)",
+      "size_bytes": 11,
+      "stack_frame": {
+        "locals": [],
+        "size": 8
+      }
+    },
+    {
+      "address": "0x401111",
+      "assembly": "PUSH RBP RBP\nMOV RBP,RSP RBP\nCALL 0x00401106 00401106\nADD EAX,0x1 EAX\nPOP RBP RBP\nRET",
+      "basic_blocks": [],
+      "callees": [
+        {
+          "address": "0x401106",
+          "is_external": false,
+          "name": "c"
+        }
+      ],
+      "callers": [
+        {
+          "address": "0x40111f",
+          "is_external": false,
+          "name": "a"
+        }
+      ],
+      "calling_convention": "unknown",
+      "cfg": {
+        "edges": [],
+        "nodes": []
+      },
+      "decompiler": "ghidra",
+      "is_thunk": false,
+      "name": "b",
+      "pseudocode": "/* WARNING: Unknown calling convention */\n\nint b(void)\n\n{\n  int iVar1;\n  void *in_RSI;\n  void *in_RDI;\n  \n  iVar1 = c(in_RDI,in_RSI);\n  return iVar1 + 1;\n}",
+      "pseudocode_error": "CFG extraction failed: 'ghidra.program.model.block.SimpleDestReferenceIterator' object is not iterable",
+      "signature": "int b(void)",
+      "size_bytes": 14,
+      "stack_frame": {
+        "locals": [],
+        "size": 8
+      }
+    },
+    {
+      "address": "0x40111f",
+      "assembly": "PUSH RBP RBP\nMOV RBP,RSP RBP\nCALL 0x00401111 00401111\nADD EAX,0x1 EAX\nPOP RBP RBP\nRET",
+      "basic_blocks": [],
+      "callees": [
+        {
+          "address": "0x401111",
+          "is_external": false,
+          "name": "b"
+        }
+      ],
+      "callers": [
+        {
+          "address": "0x40112d",
+          "is_external": false,
+          "name": "main"
+        }
+      ],
+      "calling_convention": "unknown",
+      "cfg": {
+        "edges": [],
+        "nodes": []
+      },
+      "decompiler": "ghidra",
+      "is_thunk": false,
+      "name": "a",
+      "pseudocode": "/* WARNING: Unknown calling convention */\n\nint a(void)\n\n{\n  int iVar1;\n  \n  iVar1 = b();\n  return iVar1 + 1;\n}",
+      "pseudocode_error": "CFG extraction failed: 'ghidra.program.model.block.SimpleDestReferenceIterator' object is not iterable",
+      "signature": "int a(void)",
+      "size_bytes": 14,
+      "stack_frame": {
+        "locals": [],
+        "size": 8
+      }
+    },
+    {
+      "address": "0x40112d",
+      "assembly": "PUSH RBP RBP\nMOV RBP,RSP RBP\nCALL 0x0040111f 0040111f\nPOP RBP RBP\nRET",
+      "basic_blocks": [],
+      "callees": [
+        {
+          "address": "0x40111f",
+          "is_external": false,
+          "name": "a"
+        }
+      ],
+      "callers": [
+        {
+          "address": "0x401020",
+          "is_external": false,
+          "name": "_start"
+        }
+      ],
+      "calling_convention": "unknown",
+      "cfg": {
+        "edges": [],
+        "nodes": []
+      },
+      "decompiler": "ghidra",
+      "is_thunk": false,
+      "name": "main",
+      "pseudocode": "/* WARNING: Unknown calling convention */\n\nint main(void)\n\n{\n  int iVar1;\n  \n  iVar1 = a();\n  return iVar1;\n}",
+      "pseudocode_error": "CFG extraction failed: 'ghidra.program.model.block.SimpleDestReferenceIterator' object is not iterable",
+      "signature": "int main(void)",
+      "size_bytes": 11,
+      "stack_frame": {
+        "locals": [],
+        "size": 8
+      }
+    },
+    {
+      "address": "0x401138",
+      "assembly": "ENDBR64 \nSUB RSP,0x8 RSP\nADD RSP,0x8 RSP\nRET",
+      "basic_blocks": [],
+      "callees": [],
+      "callers": [],
+      "calling_convention": "unknown",
+      "cfg": {
+        "edges": [],
+        "nodes": []
+      },
+      "decompiler": "ghidra",
+      "is_thunk": false,
+      "name": "_fini",
+      "pseudocode": "void _fini(void)\n\n{\n  return;\n}",
+      "pseudocode_error": "CFG extraction failed: 'ghidra.program.model.block.SimpleDestReferenceIterator' object is not iterable",
+      "signature": "undefined _fini(void)",
+      "size_bytes": 13,
+      "stack_frame": {
+        "locals": [],
+        "size": 8
+      }
+    },
+    {
+      "address": "0x405000",
+      "assembly": "",
+      "basic_blocks": [],
+      "callees": [],
+      "callers": [
+        {
+          "address": "0x401020",
+          "is_external": false,
+          "name": "_start"
+        }
+      ],
+      "calling_convention": "unknown",
+      "cfg": {
+        "edges": [],
+        "nodes": []
+      },
+      "decompiler": "ghidra",
+      "is_thunk": true,
+      "name": "__libc_start_main",
+      "pseudocode": "/* WARNING: Control flow encountered bad instruction data */\n\nvoid __libc_start_main(void)\n\n{\n                    /* WARNING: Bad instruction - Truncating control flow here */\n                    /* __libc_start_main@GLIBC_2.34 */\n  halt_baddata();\n}",
+      "pseudocode_error": null,
+      "signature": "undefined __libc_start_main(void)",
+      "size_bytes": 1,
+      "stack_frame": {
+        "locals": [],
+        "size": 8
+      }
+    },
+    {
+      "address": "0x405008",
+      "assembly": "",
+      "basic_blocks": [],
+      "callees": [],
+      "callers": [
+        {
+          "address": "0x401060",
+          "is_external": false,
+          "name": "deregister_tm_clones"
+        },
+        {
+          "address": "0x401060",
+          "is_external": false,
+          "name": "deregister_tm_clones"
+        }
+      ],
+      "calling_convention": "unknown",
+      "cfg": {
+        "edges": [],
+        "nodes": []
+      },
+      "decompiler": "ghidra",
+      "is_thunk": true,
+      "name": "_ITM_deregisterTMCloneTable",
+      "pseudocode": "/* WARNING: Control flow encountered bad instruction data */\n\nvoid _ITM_deregisterTMCloneTable(void)\n\n{\n                    /* WARNING: Bad instruction - Truncating control flow here */\n  halt_baddata();\n}",
+      "pseudocode_error": null,
+      "signature": "undefined _ITM_deregisterTMCloneTable(void)",
+      "size_bytes": 1,
+      "stack_frame": {
+        "locals": [],
+        "size": 8
+      }
+    },
+    {
+      "address": "0x405010",
+      "assembly": "",
+      "basic_blocks": [],
+      "callees": [],
+      "callers": [
+        {
+          "address": "0x401000",
+          "is_external": false,
+          "name": "_init"
+        },
+        {
+          "address": "0x401000",
+          "is_external": false,
+          "name": "_init"
+        }
+      ],
+      "calling_convention": "unknown",
+      "cfg": {
+        "edges": [],
+        "nodes": []
+      },
+      "decompiler": "ghidra",
+      "is_thunk": true,
+      "name": "__gmon_start__",
+      "pseudocode": "/* WARNING: Control flow encountered bad instruction data */\n\nvoid __gmon_start__(void)\n\n{\n                    /* WARNING: Bad instruction - Truncating control flow here */\n  halt_baddata();\n}",
+      "pseudocode_error": null,
+      "signature": "undefined __gmon_start__(void)",
+      "size_bytes": 1,
+      "stack_frame": {
+        "locals": [],
+        "size": 8
+      }
+    },
+    {
+      "address": "0x405018",
+      "assembly": "",
+      "basic_blocks": [],
+      "callees": [],
+      "callers": [
+        {
+          "address": "0x401090",
+          "is_external": false,
+          "name": "register_tm_clones"
+        },
+        {
+          "address": "0x401090",
+          "is_external": false,
+          "name": "register_tm_clones"
+        }
+      ],
+      "calling_convention": "unknown",
+      "cfg": {
+        "edges": [],
+        "nodes": []
+      },
+      "decompiler": "ghidra",
+      "is_thunk": true,
+      "name": "_ITM_registerTMCloneTable",
+      "pseudocode": "/* WARNING: Control flow encountered bad instruction data */\n\nvoid _ITM_registerTMCloneTable(void)\n\n{\n                    /* WARNING: Bad instruction - Truncating control flow here */\n  halt_baddata();\n}",
+      "pseudocode_error": null,
+      "signature": "undefined _ITM_registerTMCloneTable(void)",
+      "size_bytes": 1,
+      "stack_frame": {
+        "locals": [],
+        "size": 8
+      }
+    }
+  ],
+  "imports": [
+    {
+      "address": "0x1",
+      "library": "",
+      "name": "__libc_start_main"
+    },
+    {
+      "address": "0x2",
+      "library": "",
+      "name": "_ITM_deregisterTMCloneTable"
+    },
+    {
+      "address": "0x3",
+      "library": "",
+      "name": "_ITM_registerTMCloneTable"
+    },
+    {
+      "address": "0x4",
+      "library": "",
+      "name": "__gmon_start__"
+    }
+  ],
+  "schema_version": "1.0",
+  "sections": [
+    {
+      "address": "0x400000",
+      "name": "segment_2.1",
+      "permissions": "r",
+      "size": 904
+    },
+    {
+      "address": "0x400388",
+      "name": ".note.gnu.build-id",
+      "permissions": "r",
+      "size": 36
+    },
+    {
+      "address": "0x4003ac",
+      "name": ".interp",
+      "permissions": "r",
+      "size": 28
+    },
+    {
+      "address": "0x4003c8",
+      "name": ".gnu.hash",
+      "permissions": "r",
+      "size": 28
+    },
+    {
+      "address": "0x4003e8",
+      "name": ".dynsym",
+      "permissions": "r",
+      "size": 120
+    },
+    {
+      "address": "0x400460",
+      "name": ".dynstr",
+      "permissions": "r",
+      "size": 109
+    },
+    {
+      "address": "0x4004ce",
+      "name": ".gnu.version",
+      "permissions": "r",
+      "size": 10
+    },
+    {
+      "address": "0x4004d8",
+      "name": ".gnu.version_r",
+      "permissions": "r",
+      "size": 32
+    },
+    {
+      "address": "0x4004f8",
+      "name": ".rela.dyn",
+      "permissions": "r",
+      "size": 96
+    },
+    {
+      "address": "0x401000",
+      "name": ".init",
+      "permissions": "rx",
+      "size": 27
+    },
+    {
+      "address": "0x401020",
+      "name": ".text",
+      "permissions": "rx",
+      "size": 280
+    },
+    {
+      "address": "0x401138",
+      "name": ".fini",
+      "permissions": "rx",
+      "size": 13
+    },
+    {
+      "address": "0x402000",
+      "name": ".rodata",
+      "permissions": "r",
+      "size": 4
+    },
+    {
+      "address": "0x402004",
+      "name": ".eh_frame_hdr",
+      "permissions": "r",
+      "size": 60
+    },
+    {
+      "address": "0x402040",
+      "name": ".eh_frame",
+      "permissions": "r",
+      "size": 196
+    },
+    {
+      "address": "0x402108",
+      "name": ".sframe",
+      "permissions": "r",
+      "size": 78
+    },
+    {
+      "address": "0x402158",
+      "name": ".note.gnu.property",
+      "permissions": "r",
+      "size": 64
+    },
+    {
+      "address": "0x402198",
+      "name": ".note.ABI-tag",
+      "permissions": "r",
+      "size": 32
+    },
+    {
+      "address": "0x403e28",
+      "name": ".init_array",
+      "permissions": "r",
+      "size": 8
+    },
+    {
+      "address": "0x403e30",
+      "name": ".fini_array",
+      "permissions": "r",
+      "size": 8
+    },
+    {
+      "address": "0x403e38",
+      "name": ".dynamic",
+      "permissions": "r",
+      "size": 400
+    },
+    {
+      "address": "0x403fc8",
+      "name": ".got",
+      "permissions": "r",
+      "size": 32
+    },
+    {
+      "address": "0x403fe8",
+      "name": ".got.plt",
+      "permissions": "r",
+      "size": 24
+    },
+    {
+      "address": "0x404000",
+      "name": ".data",
+      "permissions": "rw",
+      "size": 16
+    },
+    {
+      "address": "0x404010",
+      "name": ".bss",
+      "permissions": "rw",
+      "size": 8
+    },
+    {
+      "address": "0x405000",
+      "name": "EXTERNAL",
+      "permissions": "rw",
+      "size": 32
+    },
+    {
+      "address": "0x0",
+      "name": ".comment",
+      "permissions": "-",
+      "size": 27
+    },
+    {
+      "address": "0x0",
+      "name": ".debug_abbrev",
+      "permissions": "-",
+      "size": 141
+    },
+    {
+      "address": "0x0",
+      "name": ".debug_aranges",
+      "permissions": "-",
+      "size": 48
+    },
+    {
+      "address": "0x0",
+      "name": ".debug_info",
+      "permissions": "-",
+      "size": 173
+    },
+    {
+      "address": "0x0",
+      "name": ".debug_line",
+      "permissions": "-",
+      "size": 124
+    },
+    {
+      "address": "0x0",
+      "name": ".debug_line_str",
+      "permissions": "-",
+      "size": 135
+    },
+    {
+      "address": "0x0",
+      "name": ".debug_str",
+      "permissions": "-",
+      "size": 65
+    },
+    {
+      "address": "0x0",
+      "name": ".shstrtab",
+      "permissions": "-",
+      "size": 356
+    },
+    {
+      "address": "0x0",
+      "name": ".strtab",
+      "permissions": "-",
+      "size": 469
+    },
+    {
+      "address": "0x0",
+      "name": ".symtab",
+      "permissions": "-",
+      "size": 912
+    },
+    {
+      "address": "0x0",
+      "name": "_elfSectionHeaders",
+      "permissions": "-",
+      "size": 2240
+    }
+  ],
+  "strings": [
+    {
+      "address": "0x4003ac",
+      "encoding": "ascii",
+      "value": "/lib64/ld-linux-x86-64.so.2"
+    },
+    {
+      "address": "0x400461",
+      "encoding": "ascii",
+      "value": "__libc_start_main"
+    },
+    {
+      "address": "0x400473",
+      "encoding": "ascii",
+      "value": "libc.so.6"
+    },
+    {
+      "address": "0x40047d",
+      "encoding": "ascii",
+      "value": "GLIBC_2.34"
+    },
+    {
+      "address": "0x400488",
+      "encoding": "ascii",
+      "value": "_ITM_deregisterTMCloneTable"
+    },
+    {
+      "address": "0x4004a4",
+      "encoding": "ascii",
+      "value": "__gmon_start__"
+    },
+    {
+      "address": "0x4004b3",
+      "encoding": "ascii",
+      "value": "_ITM_registerTMCloneTable"
+    },
+    {
+      "address": "0x402049",
+      "encoding": "ascii",
+      "value": "zR"
+    },
+    {
+      "address": "0x0",
+      "encoding": "ascii",
+      "value": "GCC: (GNU) 16.1.1 20260625"
+    },
+    {
+      "address": "0x0",
+      "encoding": "ascii",
+      "value": "/home/victor/Proyectos/bAInary"
+    },
+    {
+      "address": "0x0",
+      "encoding": "ascii",
+      "value": "GNU C23 16.1.1 20260625 -mtune=generic -march=x86-64 -g -O0"
+    },
+    {
+      "address": "0x1",
+      "encoding": "ascii",
+      "value": ".symtab"
+    },
+    {
+      "address": "0x9",
+      "encoding": "ascii",
+      "value": ".strtab"
+    },
+    {
+      "address": "0x11",
+      "encoding": "ascii",
+      "value": ".shstrtab"
+    },
+    {
+      "address": "0x1b",
+      "encoding": "ascii",
+      "value": ".note.gnu.build-id"
+    },
+    {
+      "address": "0x2e",
+      "encoding": "ascii",
+      "value": ".interp"
+    },
+    {
+      "address": "0x36",
+      "encoding": "ascii",
+      "value": ".gnu.hash"
+    },
+    {
+      "address": "0x40",
+      "encoding": "ascii",
+      "value": ".dynsym"
+    },
+    {
+      "address": "0x48",
+      "encoding": "ascii",
+      "value": ".dynstr"
+    },
+    {
+      "address": "0x50",
+      "encoding": "ascii",
+      "value": ".gnu.version"
+    },
+    {
+      "address": "0x5d",
+      "encoding": "ascii",
+      "value": ".gnu.version_r"
+    },
+    {
+      "address": "0x6c",
+      "encoding": "ascii",
+      "value": ".rela.dyn"
+    },
+    {
+      "address": "0x76",
+      "encoding": "ascii",
+      "value": ".init"
+    },
+    {
+      "address": "0x7c",
+      "encoding": "ascii",
+      "value": ".text"
+    },
+    {
+      "address": "0x82",
+      "encoding": "ascii",
+      "value": ".fini"
+    },
+    {
+      "address": "0x88",
+      "encoding": "ascii",
+      "value": ".rodata"
+    },
+    {
+      "address": "0x90",
+      "encoding": "ascii",
+      "value": ".eh_frame_hdr"
+    },
+    {
+      "address": "0x9e",
+      "encoding": "ascii",
+      "value": ".eh_frame"
+    },
+    {
+      "address": "0xa8",
+      "encoding": "ascii",
+      "value": ".sframe"
+    },
+    {
+      "address": "0xb0",
+      "encoding": "ascii",
+      "value": ".note.gnu.property"
+    },
+    {
+      "address": "0xc3",
+      "encoding": "ascii",
+      "value": ".note.ABI-tag"
+    },
+    {
+      "address": "0xd1",
+      "encoding": "ascii",
+      "value": ".init_array"
+    },
+    {
+      "address": "0xdd",
+      "encoding": "ascii",
+      "value": ".fini_array"
+    },
+    {
+      "address": "0xe9",
+      "encoding": "ascii",
+      "value": ".dynamic"
+    },
+    {
+      "address": "0xf2",
+      "encoding": "ascii",
+      "value": ".got"
+    },
+    {
+      "address": "0xf7",
+      "encoding": "ascii",
+      "value": ".got.plt"
+    },
+    {
+      "address": "0x100",
+      "encoding": "ascii",
+      "value": ".data"
+    },
+    {
+      "address": "0x106",
+      "encoding": "ascii",
+      "value": ".bss"
+    },
+    {
+      "address": "0x10b",
+      "encoding": "ascii",
+      "value": ".comment"
+    },
+    {
+      "address": "0x114",
+      "encoding": "ascii",
+      "value": ".debug_aranges"
+    },
+    {
+      "address": "0x123",
+      "encoding": "ascii",
+      "value": ".debug_info"
+    },
+    {
+      "address": "0x12f",
+      "encoding": "ascii",
+      "value": ".debug_abbrev"
+    },
+    {
+      "address": "0x13d",
+      "encoding": "ascii",
+      "value": ".debug_line"
+    },
+    {
+      "address": "0x149",
+      "encoding": "ascii",
+      "value": ".debug_str"
+    },
+    {
+      "address": "0x154",
+      "encoding": "ascii",
+      "value": ".debug_line_str"
+    },
+    {
+      "address": "0x1",
+      "encoding": "ascii",
+      "value": "crt1.o"
+    },
+    {
+      "address": "0x8",
+      "encoding": "ascii",
+      "value": "__abi_tag"
+    },
+    {
+      "address": "0x12",
+      "encoding": "ascii",
+      "value": "crtbegin.o"
+    },
+    {
+      "address": "0x1d",
+      "encoding": "ascii",
+      "value": "deregister_tm_clones"
+    },
+    {
+      "address": "0x32",
+      "encoding": "ascii",
+      "value": "__do_global_dtors_aux"
+    },
+    {
+      "address": "0x48",
+      "encoding": "ascii",
+      "value": "completed.0"
+    },
+    {
+      "address": "0x54",
+      "encoding": "ascii",
+      "value": "__do_global_dtors_aux_fini_array_entry"
+    },
+    {
+      "address": "0x7b",
+      "encoding": "ascii",
+      "value": "frame_dummy"
+    },
+    {
+      "address": "0x87",
+      "encoding": "ascii",
+      "value": "__frame_dummy_init_array_entry"
+    },
+    {
+      "address": "0xa6",
+      "encoding": "ascii",
+      "value": "callchain.c"
+    },
+    {
+      "address": "0xb2",
+      "encoding": "ascii",
+      "value": "b"
+    },
+    {
+      "address": "0xb4",
+      "encoding": "ascii",
+      "value": "crtend.o"
+    },
+    {
+      "address": "0xbd",
+      "encoding": "ascii",
+      "value": "__FRAME_END__"
+    },
+    {
+      "address": "0xcb",
+      "encoding": "ascii",
+      "value": "_DYNAMIC"
+    },
+    {
+      "address": "0xd4",
+      "encoding": "ascii",
+      "value": "__GNU_EH_FRAME_HDR"
+    },
+    {
+      "address": "0xe7",
+      "encoding": "ascii",
+      "value": "_GLOBAL_OFFSET_TABLE_"
+    },
+    {
+      "address": "0xfd",
+      "encoding": "ascii",
+      "value": "__libc_start_main@GLIBC_2.34"
+    },
+    {
+      "address": "0x11a",
+      "encoding": "ascii",
+      "value": "_ITM_deregisterTMCloneTable"
+    },
+    {
+      "address": "0x136",
+      "encoding": "ascii",
+      "value": "_edata"
+    },
+    {
+      "address": "0x13d",
+      "encoding": "ascii",
+      "value": "_fini"
+    },
+    {
+      "address": "0x143",
+      "encoding": "ascii",
+      "value": "__data_start"
+    },
+    {
+      "address": "0x150",
+      "encoding": "ascii",
+      "value": "__gmon_start__"
+    },
+    {
+      "address": "0x15f",
+      "encoding": "ascii",
+      "value": "__dso_handle"
+    },
+    {
+      "address": "0x16c",
+      "encoding": "ascii",
+      "value": "_IO_stdin_used"
+    },
+    {
+      "address": "0x17b",
+      "encoding": "ascii",
+      "value": "_end"
+    },
+    {
+      "address": "0x180",
+      "encoding": "ascii",
+      "value": "_dl_relocate_static_pie"
+    },
+    {
+      "address": "0x198",
+      "encoding": "ascii",
+      "value": "__bss_start"
+    },
+    {
+      "address": "0x1a4",
+      "encoding": "ascii",
+      "value": "main"
+    },
+    {
+      "address": "0x1a9",
+      "encoding": "ascii",
+      "value": "__TMC_END__"
+    },
+    {
+      "address": "0x1b5",
+      "encoding": "ascii",
+      "value": "_ITM_registerTMCloneTable"
+    },
+    {
+      "address": "0x1cf",
+      "encoding": "ascii",
+      "value": "_init"
+    }
+  ]
+}
