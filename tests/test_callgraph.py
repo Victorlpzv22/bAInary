@@ -1,8 +1,117 @@
-"""Tests for bainary.graph.CallGraph — unit tests with synthetic artifacts.
+"""Tests for bainary.graph.CallGraph — unit tests with synthetic artifacts."""
 
-Tests are added in Task 2. This file exists as a placeholder so the
-package is importable for tooling (linters, mypy, etc.) during the
-scaffolding phase. Task 1's package structure is validated by the
-import chain working end-to-end, which is checked at integration time
-in Task 6.
-"""
+from __future__ import annotations
+
+from bainary.graph import CallGraph, FunctionNode
+from bainary.lift.artifact import BinaryArtifact
+
+
+def _fn(
+    address: str,
+    name: str,
+    callees: list[dict] | None = None,
+    is_thunk: bool = False,
+    pseudocode: str | None = "// stub",
+    size_bytes: int = 16,
+) -> dict:
+    """Build a function dict for _make_artifact."""
+    return {
+        "address": address,
+        "name": name,
+        "signature": f"int {name}(void)",
+        "calling_convention": "cdecl",
+        "size_bytes": size_bytes,
+        "is_thunk": is_thunk,
+        "basic_blocks": [],
+        "cfg": {"nodes": [], "edges": []},
+        "callers": [],
+        "callees": callees or [],
+        "assembly": "ret",
+        "pseudocode": pseudocode,
+        "pseudocode_error": None,
+        "decompiler": "ghidra",
+        "stack_frame": {"size": 0, "locals": []},
+    }
+
+
+def _make_artifact(functions: list[dict]) -> BinaryArtifact:
+    """Build a synthetic BinaryArtifact from a list of function dicts."""
+    return BinaryArtifact.from_dict({
+        "schema_version": "1.0",
+        "binary": {
+            "path": "/tmp/synthetic.elf",
+            "sha256": "ab" * 32,
+            "format": "ELF",
+            "arch": "x64",
+            "endianness": "little",
+            "entry_point": "0x401000",
+            "base_address": "0x400000",
+            "decompiler_version": "test",
+        },
+        "sections": [],
+        "imports": [],
+        "exports": [],
+        "strings": [],
+        "functions": functions,
+    })
+
+
+def _chain_artifact() -> BinaryArtifact:
+    """Artifact with main → a → b → c call chain + printf import."""
+    return _make_artifact([
+        _fn("0x401000", "main", callees=[{"address": "0x401100", "name": "a", "is_external": False}]),
+        _fn("0x401100", "a", callees=[{"address": "0x401200", "name": "b", "is_external": False}]),
+        _fn("0x401200", "b", callees=[{"address": "0x401300", "name": "c", "is_external": False}]),
+        _fn("0x401300", "c", callees=[]),
+        _fn("0x401400", "printf", callees=[], is_thunk=True, pseudocode=None),
+    ])
+
+
+def test_build_from_artifact():
+    cg = CallGraph.from_artifact(_chain_artifact())
+    assert cg.node_count == 5
+    # main → a, a → b, b → c = 3 edges
+    assert cg.edge_count == 3
+
+
+def test_build_from_json(tmp_path):
+    artifact = _chain_artifact()
+    path = tmp_path / "artifact.json"
+    artifact.to_json(path)
+    cg = CallGraph.from_json(path)
+    assert cg.node_count == 5
+    assert cg.edge_count == 3
+
+
+def test_function_node_metadata():
+    cg = CallGraph.from_artifact(_chain_artifact())
+    main = cg.functions["0x401000"]
+    assert isinstance(main, FunctionNode)
+    assert main.name == "main"
+    assert main.signature == "int main(void)"
+    assert main.is_external is False
+    assert main.is_thunk is False
+    assert main.pseudocode == "// stub"
+    assert main.size_bytes == 16
+
+
+def test_external_function_marked():
+    cg = CallGraph.from_artifact(_chain_artifact())
+    printf = cg.functions["0x401400"]
+    assert printf.is_external is True
+    assert printf.is_thunk is True
+
+
+def test_empty_artifact():
+    cg = CallGraph.from_artifact(_make_artifact([]))
+    assert cg.node_count == 0
+    assert cg.edge_count == 0
+    assert cg.orphans() == set()
+    assert cg.entry_points() == set()
+
+
+def test_graph_attribute_is_nx_digraph():
+    import networkx as nx
+    cg = CallGraph.from_artifact(_chain_artifact())
+    assert isinstance(cg.graph, nx.DiGraph)
+    assert cg.graph.number_of_nodes() == 5
