@@ -104,14 +104,33 @@ def refine_function(
         ],
     )
     content = response.choices[0].message.content or ""
-    # Strip markdown code fences if present
-    content = content.strip()
-    if content.startswith("```c"):
-        content = content[3:]
-    elif content.startswith("```"):
-        content = content[3:]
-    if content.endswith("```"):
-        content = content[:-3]
+
+    # Robust markdown code-fence extraction. The LLM sometimes returns:
+    # - "```c\n<code>\n```"  (clean code block)
+    # - "c\n```c\n<code>\n```"  (stray 'c' before the fence)
+    # - "Here's the code:\n```c\n<code>\n```"  (prose before)
+    # - "<code>\n```"  (no opening fence, only closing)
+    # We find the first opening fence (optional language tag) and the
+    # last closing fence, and extract everything in between.
+    import re
+
+    # Find the FIRST code fence (opening)
+    open_match = re.search(r"^```[a-zA-Z0-9_+-]*\s*$", content, re.MULTILINE)
+    if open_match is not None:
+        # Skip past the opening fence line
+        after_open = content[open_match.end():]
+        # Find the LAST closing fence
+        close_match = re.search(r"^```\s*$", after_open, re.MULTILINE)
+        if close_match is not None:
+            content = after_open[:close_match.start()]
+        else:
+            # No closing fence — take everything after the opening
+            content = after_open
+    else:
+        # No opening fence — try the last-closing-fence heuristic:
+        # if the response ends with ```, strip it.
+        content = re.sub(r"\n*```\s*$", "", content)
+
     return content.strip()
 
 
