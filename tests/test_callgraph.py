@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from bainary.graph import CallGraph, FunctionNode
+from bainary.graph import CallGraph, FunctionNode, GraphError
 from bainary.lift.artifact import BinaryArtifact
 
 
@@ -158,7 +158,7 @@ def test_entry_points():
 
 def test_unknown_function_raises():
     cg = CallGraph.from_artifact(_chain_artifact())
-    with pytest.raises(ValueError, match="not in graph"):
+    with pytest.raises(GraphError, match="not in graph"):
         cg.callers_of("nonexistent")
 
 
@@ -168,5 +168,5 @@ def test_duplicate_names_raise():
         _fn("0x402000", "foo", callees=[]),
     ])
     cg = CallGraph.from_artifact(artifact)
-    with pytest.raises(ValueError, match="duplicate"):
+    with pytest.raises(GraphError, match="duplicate"):
         cg.callers_of("foo")

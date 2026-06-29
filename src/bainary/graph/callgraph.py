@@ -7,6 +7,7 @@ from pathlib import Path
 
 import networkx as nx  # type: ignore[import-untyped]
 
+from bainary.graph.errors import GraphError
 from bainary.lift.artifact import BinaryArtifact
 
 
@@ -93,16 +94,16 @@ class CallGraph:
     def _resolve_name(self, name: str) -> str:
         """Resolve a function name to its address.
 
-        Raises ValueError if the name doesn't exist or is duplicated.
+        Raises GraphError if the name doesn't exist or is duplicated.
         """
         matches = [
             addr for addr, data in self._graph.nodes(data=True)
             if data["node"].name == name
         ]
         if not matches:
-            raise ValueError(f"function {name!r} not in graph")
+            raise GraphError(f"function {name!r} not in graph")
         if len(matches) > 1:
-            raise ValueError(
+            raise GraphError(
                 f"duplicate function name {name!r}: addresses {matches}"
             )
         return matches[0]  # type: ignore[no-any-return]
