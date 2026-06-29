@@ -335,8 +335,12 @@ class BinaryArtifact:
         }
 
     def to_json(self, path: Path) -> None:
+        path.write_text(self.to_json_str())
+
+    def to_json_str(self) -> str:
+        """Serialize to a JSON string, validating against the schema first."""
         validated = BinaryArtifactSchema.model_validate(self.to_dict())
-        path.write_text(validated.model_dump_json(indent=2))
+        return validated.model_dump_json(indent=2)
 
     @classmethod
     def from_json(cls, path: Path) -> BinaryArtifact:
