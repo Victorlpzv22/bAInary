@@ -49,6 +49,10 @@ disallow_untyped_defs = true
 module = ["lief", "capstone", "typer"]
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+module = "bainary.lift.cli"
+disable_error_code = "untyped-decorator"
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 markers = [
