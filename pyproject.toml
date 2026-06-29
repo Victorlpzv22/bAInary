@@ -45,6 +45,10 @@ strict = true
 warn_unused_ignores = true
 disallow_untyped_defs = true
 
+[[tool.mypy.overrides]]
+module = ["lief", "capstone", "typer"]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 markers = [

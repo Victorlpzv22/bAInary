@@ -29,11 +29,14 @@ def ghidra_home() -> Path:
     return GHIDRA_HOME
 
 
-@pytest.mark.parametrize("fixture_name,expected_format", [
-    ("hello_elf64/hello.elf", "ELF"),
-    ("loops_elf64/loops.elf", "ELF"),
-    ("callchain_elf64/callchain.elf", "ELF"),
-])
+@pytest.mark.parametrize(
+    "fixture_name,expected_format",
+    [
+        ("hello_elf64/hello.elf", "ELF"),
+        ("loops_elf64/loops.elf", "ELF"),
+        ("callchain_elf64/callchain.elf", "ELF"),
+    ],
+)
 def test_lift_real_elf(ghidra_home, fixture_name, expected_format):
     binary = FIX / fixture_name
     if not binary.exists():

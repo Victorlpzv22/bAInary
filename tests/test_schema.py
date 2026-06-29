@@ -87,65 +87,71 @@ def test_macho_and_arm_are_valid():
 
 
 def test_function_with_all_fields():
-    fn = FunctionSchema.model_validate({
-        "address": "0x401000",
-        "name": "main",
-        "signature": "int main(void)",
-        "calling_convention": "cdecl",
-        "size_bytes": 64,
-        "is_thunk": False,
-        "basic_blocks": [{
+    fn = FunctionSchema.model_validate(
+        {
             "address": "0x401000",
-            "instructions": [{
-                "address": "0x401000",
-                "bytes": "55 48 89 e5",
-                "mnemonic": "push",
-                "operands": ["rbp"],
-                "comment": None,
-            }],
-            "successors": ["0x401004"],
-            "terminator": "fall_through",
-        }],
-        "cfg": {
-            "nodes": ["0x401000", "0x401004"],
-            "edges": [["0x401000", "0x401004"]],
-        },
-        "callers": [{"address": "0x402000", "name": "caller"}],
-        "callees": [{"address": "0x403000", "name": "puts", "is_external": True}],
-        "assembly": "push rbp\nmov rbp,rsp\n...",
-        "pseudocode": "int main(void) { return 0; }",
-        "pseudocode_error": None,
-        "decompiler": "ghidra",
-        "stack_frame": {
-            "size": 16,
-            "locals": [
-                {"name": "local_8", "offset": -8, "size": 4, "type": "int"}
+            "name": "main",
+            "signature": "int main(void)",
+            "calling_convention": "cdecl",
+            "size_bytes": 64,
+            "is_thunk": False,
+            "basic_blocks": [
+                {
+                    "address": "0x401000",
+                    "instructions": [
+                        {
+                            "address": "0x401000",
+                            "bytes": "55 48 89 e5",
+                            "mnemonic": "push",
+                            "operands": ["rbp"],
+                            "comment": None,
+                        }
+                    ],
+                    "successors": ["0x401004"],
+                    "terminator": "fall_through",
+                }
             ],
-        },
-    })
+            "cfg": {
+                "nodes": ["0x401000", "0x401004"],
+                "edges": [["0x401000", "0x401004"]],
+            },
+            "callers": [{"address": "0x402000", "name": "caller"}],
+            "callees": [{"address": "0x403000", "name": "puts", "is_external": True}],
+            "assembly": "push rbp\nmov rbp,rsp\n...",
+            "pseudocode": "int main(void) { return 0; }",
+            "pseudocode_error": None,
+            "decompiler": "ghidra",
+            "stack_frame": {
+                "size": 16,
+                "locals": [{"name": "local_8", "offset": -8, "size": 4, "type": "int"}],
+            },
+        }
+    )
     assert fn.pseudocode == "int main(void) { return 0; }"
     assert fn.callees[0].is_external is True
     assert fn.stack_frame.size == 16
 
 
 def test_function_with_null_pseudocode_and_error():
-    fn = FunctionSchema.model_validate({
-        "address": "0x401000",
-        "name": "FUN_00401000",
-        "signature": "undefined FUN_00401000(void)",
-        "calling_convention": "unknown",
-        "size_bytes": 4,
-        "is_thunk": False,
-        "basic_blocks": [],
-        "cfg": {"nodes": [], "edges": []},
-        "callers": [],
-        "callees": [],
-        "assembly": "",
-        "pseudocode": None,
-        "pseudocode_error": "Decompile cancelled after 60s",
-        "decompiler": "ghidra",
-        "stack_frame": {"size": 0, "locals": []},
-    })
+    fn = FunctionSchema.model_validate(
+        {
+            "address": "0x401000",
+            "name": "FUN_00401000",
+            "signature": "undefined FUN_00401000(void)",
+            "calling_convention": "unknown",
+            "size_bytes": 4,
+            "is_thunk": False,
+            "basic_blocks": [],
+            "cfg": {"nodes": [], "edges": []},
+            "callers": [],
+            "callees": [],
+            "assembly": "",
+            "pseudocode": None,
+            "pseudocode_error": "Decompile cancelled after 60s",
+            "decompiler": "ghidra",
+            "stack_frame": {"size": 0, "locals": []},
+        }
+    )
     assert fn.pseudocode is None
     assert fn.pseudocode_error is not None
 
@@ -198,18 +204,10 @@ def test_artifact_to_json_roundtrip():
             "entry_point": "0x400000",
             "base_address": "0x400000",
         },
-        "sections": [
-            {"name": ".text", "address": "0x401000", "size": 1024, "permissions": "r-x"}
-        ],
-        "imports": [
-            {"address": "0x404000", "name": "puts", "library": "libc.so.6"}
-        ],
-        "exports": [
-            {"address": "0x401000", "name": "main"}
-        ],
-        "strings": [
-            {"address": "0x402000", "value": "hi\n", "encoding": "ascii"}
-        ],
+        "sections": [{"name": ".text", "address": "0x401000", "size": 1024, "permissions": "r-x"}],
+        "imports": [{"address": "0x404000", "name": "puts", "library": "libc.so.6"}],
+        "exports": [{"address": "0x401000", "name": "main"}],
+        "strings": [{"address": "0x402000", "value": "hi\n", "encoding": "ascii"}],
         "functions": [],
     }
     artifact = BinaryArtifactSchema.model_validate(original)

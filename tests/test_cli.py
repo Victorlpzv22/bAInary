@@ -23,11 +23,19 @@ def test_cli_lift_writes_json(tmp_path, monkeypatch):
         d = {
             "schema_version": "1.0",
             "binary": {
-                "path": str(path), "sha256": "ab" * 32,
-                "format": "ELF", "arch": "x64", "endianness": "little",
-                "entry_point": "0x400000", "base_address": "0x400000",
+                "path": str(path),
+                "sha256": "ab" * 32,
+                "format": "ELF",
+                "arch": "x64",
+                "endianness": "little",
+                "entry_point": "0x400000",
+                "base_address": "0x400000",
             },
-            "sections": [], "imports": [], "exports": [], "strings": [], "functions": [],
+            "sections": [],
+            "imports": [],
+            "exports": [],
+            "strings": [],
+            "functions": [],
         }
         return artifact_mod.BinaryArtifact.from_dict(d)
 
@@ -47,6 +55,7 @@ def test_cli_no_cache_flag(tmp_path, monkeypatch):
     out_json = tmp_path / "out.json"
 
     from bainary.lift import artifact as artifact_mod
+
     calls = []
 
     def fake_lift(path, **kwargs):
@@ -54,11 +63,19 @@ def test_cli_no_cache_flag(tmp_path, monkeypatch):
         d = {
             "schema_version": "1.0",
             "binary": {
-                "path": str(path), "sha256": "ab" * 32,
-                "format": "ELF", "arch": "x64", "endianness": "little",
-                "entry_point": "0x400000", "base_address": "0x400000",
+                "path": str(path),
+                "sha256": "ab" * 32,
+                "format": "ELF",
+                "arch": "x64",
+                "endianness": "little",
+                "entry_point": "0x400000",
+                "base_address": "0x400000",
             },
-            "sections": [], "imports": [], "exports": [], "strings": [], "functions": [],
+            "sections": [],
+            "imports": [],
+            "exports": [],
+            "strings": [],
+            "functions": [],
         }
         return artifact_mod.BinaryArtifact.from_dict(d)
 
@@ -79,5 +96,7 @@ def test_cli_unsupported_format_exits_nonzero(tmp_path):
     runner = CliRunner()
     result = runner.invoke(app, [str(binary), "-o", str(out_json)])
     assert result.exit_code != 0
-    assert "parse" in (result.stdout + (result.stderr or "")).lower() or \
-           "format" in (result.stdout + (result.stderr or "")).lower()
+    assert (
+        "parse" in (result.stdout + (result.stderr or "")).lower()
+        or "format" in (result.stdout + (result.stderr or "")).lower()
+    )

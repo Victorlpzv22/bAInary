@@ -38,9 +38,7 @@ def _read_ghidra_version(ghidra_home: Path) -> str:
     for line in props.read_text().splitlines():
         if line.startswith("application.version="):
             return line.split("=", 1)[1].strip()
-    raise OSError(
-        f"Could not parse application.version from {props}"
-    )
+    raise OSError(f"Could not parse application.version from {props}")
 
 
 class GhidraHeadlessBackend(LifterBackend):
@@ -95,9 +93,12 @@ class GhidraHeadlessBackend(LifterBackend):
                 str(ah),
                 str(project_dir),
                 "bainary_proj",
-                "-import", str(path),
-                "-postScript", str(post_script),
-                "-postScriptArgs", str(out_json),
+                "-import",
+                str(path),
+                "-postScript",
+                str(post_script),
+                "-postScriptArgs",
+                str(out_json),
                 "-deleteproject",
             ]
             log.info("Running: %s", " ".join(cmd))

@@ -30,9 +30,7 @@ def _minimal_dict() -> dict:
             "entry_point": "0x400000",
             "base_address": "0x400000",
         },
-        "sections": [
-            {"name": ".text", "address": "0x401000", "size": 1024, "permissions": "r-x"}
-        ],
+        "sections": [{"name": ".text", "address": "0x401000", "size": 1024, "permissions": "r-x"}],
         "imports": [],
         "exports": [{"address": "0x401000", "name": "main"}],
         "strings": [],

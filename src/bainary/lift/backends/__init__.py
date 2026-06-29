@@ -16,12 +16,14 @@ def default_registry() -> BackendRegistry:
     if "ghidra_headless" not in REGISTRY._backends:
         try:
             from bainary.lift.backends.ghidra_headless import GhidraHeadlessBackend
+
             REGISTRY.register(GhidraHeadlessBackend())
         except OSError:
             pass
     if "lief_capstone" not in REGISTRY._backends:
         try:
             from bainary.lift.backends.lief_capstone import LiefCapstoneBackend
+
             REGISTRY.register(LiefCapstoneBackend())
         except OSError:
             pass

@@ -7,6 +7,7 @@ frozen so they can be safely shared. Compound objects
 (:class:`Function`, :class:`BinaryArtifact`) are mutable so callers can
 annotate, rename, or patch fields before re-serializing.
 """
+
 from __future__ import annotations
 
 import json
@@ -289,8 +290,7 @@ class BinaryArtifact:
                 for s in schema.sections
             ],
             imports=[
-                ImportRef(address=i.address, name=i.name, library=i.library)
-                for i in schema.imports
+                ImportRef(address=i.address, name=i.name, library=i.library) for i in schema.imports
             ],
             exports=[ExportRef(address=e.address, name=e.name) for e in schema.exports],
             strings=[
@@ -323,8 +323,7 @@ class BinaryArtifact:
                 for s in self.sections
             ],
             "imports": [
-                {"address": i.address, "name": i.name, "library": i.library}
-                for i in self.imports
+                {"address": i.address, "name": i.name, "library": i.library} for i in self.imports
             ],
             "exports": [{"address": e.address, "name": e.name} for e in self.exports],
             "strings": [

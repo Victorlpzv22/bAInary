@@ -60,9 +60,7 @@ class BackendRegistry:
 
     def resolve(self, name: str) -> LifterBackend:
         if name not in self._backends:
-            raise KeyError(
-                f"unknown backend {name!r}; known: {sorted(self._backends)}"
-            )
+            raise KeyError(f"unknown backend {name!r}; known: {sorted(self._backends)}")
         return self._backends[name]
 
     def default_name(self) -> str:

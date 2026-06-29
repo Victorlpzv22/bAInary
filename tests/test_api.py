@@ -22,13 +22,21 @@ def _sample_dict(sha: str) -> dict:
             "entry_point": "0x400000",
             "base_address": "0x400000",
         },
-        "sections": [], "imports": [], "exports": [], "strings": [], "functions": [],
+        "sections": [],
+        "imports": [],
+        "exports": [],
+        "strings": [],
+        "functions": [],
     }
 
 
 class FakeBackend(LifterBackend):
-    def __init__(self, return_dict: dict | None = None, raise_exc: Exception | None = None,
-                 call_log: list | None = None) -> None:
+    def __init__(
+        self,
+        return_dict: dict | None = None,
+        raise_exc: Exception | None = None,
+        call_log: list | None = None,
+    ) -> None:
         self._return = return_dict or _sample_dict("ab" * 32)
         self._raise = raise_exc
         self._log = call_log if call_log is not None else []
@@ -53,6 +61,7 @@ def test_lift_returns_artifact(tmp_path):
     sha = hashlib.sha256(b"\x7fELF").hexdigest()
 
     from bainary.lift.backends.base import BackendRegistry
+
     reg = BackendRegistry()
     reg.register(FakeBackend(return_dict=_sample_dict(sha)))
 
@@ -69,11 +78,16 @@ def test_lift_caches_result(tmp_path, tmp_cache_dir):
     backend = FakeBackend(return_dict=_sample_dict(sha), call_log=log)
 
     from bainary.lift.backends.base import BackendRegistry
+
     reg = BackendRegistry()
     reg.register(backend)
 
-    a1 = lift(binary, backend="fake", registry=reg, cache_dir=tmp_cache_dir, ghidra_version="fake-1.0")
-    a2 = lift(binary, backend="fake", registry=reg, cache_dir=tmp_cache_dir, ghidra_version="fake-1.0")
+    a1 = lift(
+        binary, backend="fake", registry=reg, cache_dir=tmp_cache_dir, ghidra_version="fake-1.0"
+    )
+    a2 = lift(
+        binary, backend="fake", registry=reg, cache_dir=tmp_cache_dir, ghidra_version="fake-1.0"
+    )
     assert a1.binary.sha256 == a2.binary.sha256
     assert len(log) == 1
 
@@ -86,11 +100,16 @@ def test_lift_cache_miss_increments_backend_call(tmp_path, tmp_cache_dir):
     backend = FakeBackend(return_dict=_sample_dict(sha), call_log=log)
 
     from bainary.lift.backends.base import BackendRegistry
+
     reg = BackendRegistry()
     reg.register(backend)
 
-    a1 = lift(binary, backend="fake", registry=reg, cache_dir=tmp_cache_dir, ghidra_version="fake-1.0")
-    a2 = lift(binary, backend="fake", registry=reg, cache_dir=tmp_cache_dir, ghidra_version="fake-2.0")
+    a1 = lift(
+        binary, backend="fake", registry=reg, cache_dir=tmp_cache_dir, ghidra_version="fake-1.0"
+    )
+    a2 = lift(
+        binary, backend="fake", registry=reg, cache_dir=tmp_cache_dir, ghidra_version="fake-2.0"
+    )
     assert a1.binary.sha256 == a2.binary.sha256
     assert len(log) == 2
 
@@ -103,11 +122,26 @@ def test_lift_use_cache_false_skips_cache(tmp_path, tmp_cache_dir):
     backend = FakeBackend(return_dict=_sample_dict(sha), call_log=log)
 
     from bainary.lift.backends.base import BackendRegistry
+
     reg = BackendRegistry()
     reg.register(backend)
 
-    lift(binary, backend="fake", registry=reg, cache_dir=tmp_cache_dir, ghidra_version="fake-1.0", use_cache=False)
-    lift(binary, backend="fake", registry=reg, cache_dir=tmp_cache_dir, ghidra_version="fake-1.0", use_cache=False)
+    lift(
+        binary,
+        backend="fake",
+        registry=reg,
+        cache_dir=tmp_cache_dir,
+        ghidra_version="fake-1.0",
+        use_cache=False,
+    )
+    lift(
+        binary,
+        backend="fake",
+        registry=reg,
+        cache_dir=tmp_cache_dir,
+        ghidra_version="fake-1.0",
+        use_cache=False,
+    )
     assert len(log) == 2
 
 
@@ -116,6 +150,7 @@ def test_lift_wraps_backend_exception_in_lifter_error(tmp_path):
     binary.write_bytes(b"\x7fELF")
 
     from bainary.lift.backends.base import BackendRegistry
+
     reg = BackendRegistry()
     reg.register(FakeBackend(raise_exc=RuntimeError("boom")))
 
@@ -130,6 +165,7 @@ def test_lift_rejects_unsupported_format_via_lief(tmp_path):
     binary = tmp_path / "x.wasm"
     binary.write_bytes(b"\x00asm" + b"\x01\x00\x00\x00" + b"\x00" * 20)
     from bainary.lift.backends.base import BackendRegistry
+
     reg = BackendRegistry()
     reg.register(FakeBackend())
 
@@ -139,6 +175,7 @@ def test_lift_rejects_unsupported_format_via_lief(tmp_path):
 
 def test_lift_rejects_unsupported_arch(tmp_path):
     import struct
+
     # EM_MIPS = 0x08 — MIPS is not in the MVP scope
     e_ident = b"\x7fELF" + bytes([1, 1, 1, 0]) + b"\x00" * 8
     e_type = struct.pack("<H", 2)
@@ -149,6 +186,7 @@ def test_lift_rejects_unsupported_arch(tmp_path):
     binary.write_bytes(header)
 
     from bainary.lift.backends.base import BackendRegistry
+
     reg = BackendRegistry()
     reg.register(FakeBackend())
 
@@ -162,6 +200,7 @@ def test_lift_validates_schema_after_backend(tmp_path):
     bad_dict = {"this is not": "a valid artifact"}
 
     from bainary.lift.backends.base import BackendRegistry
+
     reg = BackendRegistry()
     reg.register(FakeBackend(return_dict=bad_dict))
 

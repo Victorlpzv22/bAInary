@@ -42,9 +42,7 @@ def _precheck_with_lief(path: Path) -> None:
     try:
         import lief
     except ImportError as e:
-        raise OSError(
-            "lief is not installed. Install with: pip install lief"
-        ) from e
+        raise OSError("lief is not installed. Install with: pip install lief") from e
     try:
         binary = lief.parse(str(path))
     except Exception as e:
@@ -60,22 +58,16 @@ def _precheck_with_lief(path: Path) -> None:
     elif "MACHO" in fmt or "MACH-O" in fmt or "FAT" in fmt:
         fmt = "MACHO"
     else:
-        raise ValueError(
-            f"format {fmt!r} not supported; supported: {sorted(_SUPPORTED_FORMATS)}"
-        )
+        raise ValueError(f"format {fmt!r} not supported; supported: {sorted(_SUPPORTED_FORMATS)}")
     if fmt not in _SUPPORTED_FORMATS:
-        raise ValueError(
-            f"format {fmt!r} not supported; supported: {sorted(_SUPPORTED_FORMATS)}"
-        )
+        raise ValueError(f"format {fmt!r} not supported; supported: {sorted(_SUPPORTED_FORMATS)}")
 
     machine = _detect_machine(binary)
     if machine in _SUPPORTED_ARCHES:
         return
     if machine is None:
         return
-    raise ValueError(
-        f"arch {machine!r} not in MVP scope; supported: x86, x64"
-    )
+    raise ValueError(f"arch {machine!r} not in MVP scope; supported: x86, x64")
 
 
 def _detect_machine(binary: Any) -> str | None:
@@ -167,6 +159,7 @@ def _resolve_backend(
     if instance is not None:
         return instance
     from bainary.lift.backends import default_registry
+
     reg = registry if registry is not None else default_registry()
     if name is None:
         name = reg.default_name()

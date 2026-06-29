@@ -41,35 +41,51 @@ def _fn(
 
 def _make_artifact(functions: list[dict]) -> BinaryArtifact:
     """Build a synthetic BinaryArtifact from a list of function dicts."""
-    return BinaryArtifact.from_dict({
-        "schema_version": "1.0",
-        "binary": {
-            "path": "/tmp/synthetic.elf",
-            "sha256": "ab" * 32,
-            "format": "ELF",
-            "arch": "x64",
-            "endianness": "little",
-            "entry_point": "0x401000",
-            "base_address": "0x400000",
-            "decompiler_version": "test",
-        },
-        "sections": [],
-        "imports": [],
-        "exports": [],
-        "strings": [],
-        "functions": functions,
-    })
+    return BinaryArtifact.from_dict(
+        {
+            "schema_version": "1.0",
+            "binary": {
+                "path": "/tmp/synthetic.elf",
+                "sha256": "ab" * 32,
+                "format": "ELF",
+                "arch": "x64",
+                "endianness": "little",
+                "entry_point": "0x401000",
+                "base_address": "0x400000",
+                "decompiler_version": "test",
+            },
+            "sections": [],
+            "imports": [],
+            "exports": [],
+            "strings": [],
+            "functions": functions,
+        }
+    )
 
 
 def _chain_artifact() -> BinaryArtifact:
     """Artifact with main → a → b → c call chain + printf import."""
-    return _make_artifact([
-        _fn("0x401000", "main", callees=[{"address": "0x401100", "name": "a", "is_external": False}]),
-        _fn("0x401100", "a", callees=[{"address": "0x401200", "name": "b", "is_external": False}]),
-        _fn("0x401200", "b", callees=[{"address": "0x401300", "name": "c", "is_external": False}]),
-        _fn("0x401300", "c", callees=[]),
-        _fn("0x401400", "printf", callees=[], is_thunk=True, pseudocode=None),
-    ])
+    return _make_artifact(
+        [
+            _fn(
+                "0x401000",
+                "main",
+                callees=[{"address": "0x401100", "name": "a", "is_external": False}],
+            ),
+            _fn(
+                "0x401100",
+                "a",
+                callees=[{"address": "0x401200", "name": "b", "is_external": False}],
+            ),
+            _fn(
+                "0x401200",
+                "b",
+                callees=[{"address": "0x401300", "name": "c", "is_external": False}],
+            ),
+            _fn("0x401300", "c", callees=[]),
+            _fn("0x401400", "printf", callees=[], is_thunk=True, pseudocode=None),
+        ]
+    )
 
 
 def test_build_from_artifact():
@@ -117,6 +133,7 @@ def test_empty_artifact():
 
 def test_graph_attribute_is_nx_digraph():
     import networkx as nx
+
     cg = CallGraph.from_artifact(_chain_artifact())
     assert isinstance(cg.graph, nx.DiGraph)
     assert cg.graph.number_of_nodes() == 5
@@ -166,10 +183,12 @@ def test_unknown_function_raises():
 
 
 def test_duplicate_names_raise():
-    artifact = _make_artifact([
-        _fn("0x401000", "foo", callees=[]),
-        _fn("0x402000", "foo", callees=[]),
-    ])
+    artifact = _make_artifact(
+        [
+            _fn("0x401000", "foo", callees=[]),
+            _fn("0x402000", "foo", callees=[]),
+        ]
+    )
     cg = CallGraph.from_artifact(artifact)
     with pytest.raises(GraphError, match="duplicate"):
         cg.callers_of("foo")
@@ -177,11 +196,13 @@ def test_duplicate_names_raise():
 
 def _cycle_artifact() -> BinaryArtifact:
     """Artifact with a cycle: a → b → a, plus c → a."""
-    return _make_artifact([
-        _fn("0x1000", "a", callees=[{"address": "0x2000", "name": "b", "is_external": False}]),
-        _fn("0x2000", "b", callees=[{"address": "0x1000", "name": "a", "is_external": False}]),
-        _fn("0x3000", "c", callees=[{"address": "0x1000", "name": "a", "is_external": False}]),
-    ])
+    return _make_artifact(
+        [
+            _fn("0x1000", "a", callees=[{"address": "0x2000", "name": "b", "is_external": False}]),
+            _fn("0x2000", "b", callees=[{"address": "0x1000", "name": "a", "is_external": False}]),
+            _fn("0x3000", "c", callees=[{"address": "0x1000", "name": "a", "is_external": False}]),
+        ]
+    )
 
 
 def test_cycles_detects_scc():

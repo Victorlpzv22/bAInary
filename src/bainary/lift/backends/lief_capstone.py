@@ -49,9 +49,7 @@ class LiefCapstoneBackend(LifterBackend):
             import capstone  # type: ignore[import-untyped]  # noqa: F401
             import lief  # noqa: F401
         except ImportError as e:
-            raise OSError(
-                f"LiefCapstoneBackend requires lief and capstone: {e}"
-            ) from e
+            raise OSError(f"LiefCapstoneBackend requires lief and capstone: {e}") from e
 
     @property
     def name(self) -> str:
@@ -138,22 +136,26 @@ class LiefCapstoneBackend(LifterBackend):
                 pass
             if not perms:
                 perms = "r" if s.virtual_address != 0 else "-"
-            sections.append({
-                "name": str(s.name),
-                "address": f"0x{s.virtual_address:x}" if s.virtual_address else "0x0",
-                "size": int(s.size),
-                "permissions": perms,
-            })
+            sections.append(
+                {
+                    "name": str(s.name),
+                    "address": f"0x{s.virtual_address:x}" if s.virtual_address else "0x0",
+                    "size": int(s.size),
+                    "permissions": perms,
+                }
+            )
 
         # Imports
         imports = []
         try:
             for imp in binary.imported_functions:
-                imports.append({
-                    "address": "0x0",
-                    "name": str(imp.name),
-                    "library": "",
-                })
+                imports.append(
+                    {
+                        "address": "0x0",
+                        "name": str(imp.name),
+                        "library": "",
+                    }
+                )
         except Exception:
             pass
 
@@ -161,10 +163,12 @@ class LiefCapstoneBackend(LifterBackend):
         exports = []
         try:
             for exp in binary.exported_functions:
-                exports.append({
-                    "address": "0x0",
-                    "name": str(exp.name),
-                })
+                exports.append(
+                    {
+                        "address": "0x0",
+                        "name": str(exp.name),
+                    }
+                )
         except Exception:
             pass
 
@@ -181,11 +185,17 @@ class LiefCapstoneBackend(LifterBackend):
                             current.append(chr(b))
                         else:
                             if len(current) >= 4:
-                                strings.append({
-                                    "address": "0x%x" % (s.virtual_address + data.index("".join(current).encode())),
-                                    "value": "".join(current),
-                                    "encoding": "ascii",
-                                })
+                                strings.append(
+                                    {
+                                        "address": "0x%x"
+                                        % (
+                                            s.virtual_address
+                                            + data.index("".join(current).encode())
+                                        ),
+                                        "value": "".join(current),
+                                        "encoding": "ascii",
+                                    }
+                                )
                             current = []
         except Exception:
             pass
@@ -206,7 +216,7 @@ class LiefCapstoneBackend(LifterBackend):
                         section_offset = func_addr - section.virtual_address
                         section_bytes = bytes(section.content)
                         # Disassemble up to 4096 bytes (or until section end)
-                        code = section_bytes[section_offset:section_offset + 4096]
+                        code = section_bytes[section_offset : section_offset + 4096]
                         asm_lines = []
                         for insn in md.disasm(code, func_addr):
                             asm_lines.append(f"{insn.mnemonic} {insn.op_str}")
@@ -218,23 +228,25 @@ class LiefCapstoneBackend(LifterBackend):
                         assembly = ""
                         size = 0
 
-                    functions.append({
-                        "address": f"0x{func_addr:x}",
-                        "name": str(func_name),
-                        "signature": f"undefined {func_name}(void)",
-                        "calling_convention": "unknown",
-                        "size_bytes": size,
-                        "is_thunk": False,
-                        "basic_blocks": [],
-                        "cfg": {"nodes": [], "edges": []},
-                        "callers": [],
-                        "callees": [],
-                        "assembly": assembly,
-                        "pseudocode": None,
-                        "pseudocode_error": "lief_capstone backend: no decompiler available",
-                        "decompiler": "ghidra",  # keep schema happy (enum only allows "ghidra")
-                        "stack_frame": {"size": 0, "locals": []},
-                    })
+                    functions.append(
+                        {
+                            "address": f"0x{func_addr:x}",
+                            "name": str(func_name),
+                            "signature": f"undefined {func_name}(void)",
+                            "calling_convention": "unknown",
+                            "size_bytes": size,
+                            "is_thunk": False,
+                            "basic_blocks": [],
+                            "cfg": {"nodes": [], "edges": []},
+                            "callers": [],
+                            "callees": [],
+                            "assembly": assembly,
+                            "pseudocode": None,
+                            "pseudocode_error": "lief_capstone backend: no decompiler available",
+                            "decompiler": "ghidra",  # keep schema happy (enum only allows "ghidra")
+                            "stack_frame": {"size": 0, "locals": []},
+                        }
+                    )
         except Exception as e:
             log.warning("Function extraction failed: %s", e)
 

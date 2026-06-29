@@ -4,6 +4,7 @@ This module is the single source of truth for the schema. Downstream
 subsystems (B, C, D, E) import these models to validate and parse the
 JSON emitted by subsystem A.
 """
+
 from __future__ import annotations
 
 import re
@@ -20,9 +21,7 @@ _HEX_RE = re.compile(r"^0x[0-9a-fA-F]+$")
 
 def _validate_hex(value: str, field_name: str) -> str:
     if not _HEX_RE.match(value):
-        raise ValueError(
-            f"{field_name} must be a hex string like '0x401000', got {value!r}"
-        )
+        raise ValueError(f"{field_name} must be a hex string like '0x401000', got {value!r}")
     return value
 
 

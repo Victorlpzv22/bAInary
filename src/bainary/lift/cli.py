@@ -16,19 +16,22 @@ app = typer.Typer(
 )
 
 
-@app.command()
+@app.command()  # type: ignore[untyped-decorator]  # typer has no stubs
 def main(
     binary: Path = typer.Argument(  # noqa: B008
         ..., exists=True, file_okay=True, dir_okay=False, readable=True
     ),
     output: Path = typer.Option(..., "-o", "--output", help="Path to write the JSON artifact."),  # noqa: B008
-    backend: str | None = typer.Option(None, "--backend", help="Backend name (default: ghidra_headless)."),  # noqa: B008
+    backend: str | None = typer.Option(
+        None, "--backend", help="Backend name (default: ghidra_headless)."
+    ),  # noqa: B008
     no_cache: bool = typer.Option(False, "--no-cache", help="Skip the cache; always re-lift."),  # noqa: B008
     timeout: int = typer.Option(600, "--timeout", help="Backend timeout in seconds."),  # noqa: B008
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable debug logging."),  # noqa: B008
 ) -> None:
     """Lift BINARY into a bAInary JSON artifact and write to OUTPUT."""
     import logging
+
     level = logging.DEBUG if verbose else logging.WARNING
     logging.basicConfig(level=level, format="%(levelname)s %(name)s: %(message)s")
 

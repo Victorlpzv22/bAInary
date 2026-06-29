@@ -14,6 +14,7 @@ from bainary.lift.artifact import BinaryArtifact
 @dataclass(frozen=True)
 class FunctionNode:
     """Metadata for a function node in the call graph."""
+
     address: str
     name: str
     signature: str
@@ -96,16 +97,11 @@ class CallGraph:
 
         Raises GraphError if the name doesn't exist or is duplicated.
         """
-        matches = [
-            addr for addr, data in self._graph.nodes(data=True)
-            if data["node"].name == name
-        ]
+        matches = [addr for addr, data in self._graph.nodes(data=True) if data["node"].name == name]
         if not matches:
             raise GraphError(f"function {name!r} not in graph")
         if len(matches) > 1:
-            raise GraphError(
-                f"duplicate function name {name!r}: addresses {matches}"
-            )
+            raise GraphError(f"duplicate function name {name!r}: addresses {matches}")
         return matches[0]  # type: ignore[no-any-return]
 
     def callers_of(self, name: str, *, transitive: bool = False) -> set[str]:
@@ -150,11 +146,7 @@ class CallGraph:
         Each SCC is a set of function names that form a cycle.
         """
         sccs = nx.strongly_connected_components(self._graph)
-        return [
-            {self._addr_to_name(addr) for addr in scc}
-            for scc in sccs
-            if len(scc) > 1
-        ]
+        return [{self._addr_to_name(addr) for addr in scc} for scc in sccs if len(scc) > 1]
 
     def shortest_path(self, source: str, target: str) -> list[str] | None:
         """Return the shortest call path from ``source`` to ``target``.
@@ -200,4 +192,5 @@ class CallGraph:
     def to_pickle(self, path: str | Path) -> None:
         """Serialize the call graph (with full FunctionNode metadata) to pickle."""
         import pickle
+
         Path(path).write_bytes(pickle.dumps(self._graph))

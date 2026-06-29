@@ -45,7 +45,8 @@ def main() -> int:
             print(f"  gcc {src_name}  ->  {out.relative_to(ROOT)}")
             r = subprocess.run(
                 [ELF_CC, str(c_src), "-O0", "-g", "-o", str(out), "-no-pie"],
-                capture_output=True, text=True,
+                capture_output=True,
+                text=True,
             )
             if r.returncode != 0:
                 print(f"    gcc failed:\n{r.stderr}", file=sys.stderr)
@@ -59,7 +60,8 @@ def main() -> int:
             print(f"  mingw {src_name}  ->  {out.relative_to(ROOT)}")
             r = subprocess.run(
                 [PE_CC, str(c_src), "-O0", "-g", "-o", str(out)],
-                capture_output=True, text=True,
+                capture_output=True,
+                text=True,
             )
             if r.returncode != 0:
                 print(f"    mingw failed:\n{r.stderr}", file=sys.stderr)

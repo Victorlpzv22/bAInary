@@ -88,6 +88,7 @@ def test_cache_lru_eviction(tmp_cache_dir: Path):
 
     # Access the first entry to make it recently used
     import time
+
     time.sleep(0.05)  # ensure mtime differs
     cache.lookup("a" * 64)
 

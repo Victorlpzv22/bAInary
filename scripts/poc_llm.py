@@ -40,9 +40,7 @@ DEFAULT_MODEL = "kimi-k2.7-code"  # code-specialized, good price/quality
 DEFAULT_NUM_FUNCTIONS = 3
 
 
-def pick_smallest_functions(
-    cg: CallGraph, n: int
-) -> list[tuple[str, str]]:
+def pick_smallest_functions(cg: CallGraph, n: int) -> list[tuple[str, str]]:
     """Pick the N smallest functions (by pseudocode length) with valid pseudo-C.
 
     Returns a list of (name, pseudo_c) tuples.
@@ -118,11 +116,11 @@ def refine_function(
     open_match = re.search(r"^```[a-zA-Z0-9_+-]*\s*$", content, re.MULTILINE)
     if open_match is not None:
         # Skip past the opening fence line
-        after_open = content[open_match.end():]
+        after_open = content[open_match.end() :]
         # Find the LAST closing fence
         close_match = re.search(r"^```\s*$", after_open, re.MULTILINE)
         if close_match is not None:
-            content = after_open[:close_match.start()]
+            content = after_open[: close_match.start()]
         else:
             # No closing fence — take everything after the opening
             content = after_open
@@ -138,15 +136,20 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("binary", type=Path, help="Path to a PE or ELF binary")
     parser.add_argument(
-        "--backend", default="ghidra_headless",
+        "--backend",
+        default="ghidra_headless",
         help="Lifting backend (default: ghidra_headless, produces real pseudo-C; lief_capstone is fast but no pseudo-C)",
     )
     parser.add_argument(
-        "--model", default=DEFAULT_MODEL,
+        "--model",
+        default=DEFAULT_MODEL,
         help=f"OpenCode Go model ID (default: {DEFAULT_MODEL})",
     )
     parser.add_argument(
-        "-n", "--num-functions", type=int, default=DEFAULT_NUM_FUNCTIONS,
+        "-n",
+        "--num-functions",
+        type=int,
+        default=DEFAULT_NUM_FUNCTIONS,
         help=f"Number of functions to refine (default: {DEFAULT_NUM_FUNCTIONS})",
     )
     args = parser.parse_args()
@@ -193,9 +196,9 @@ def main() -> int:
     client = OpenAI(api_key=api_key, base_url=OPENCODE_GO_BASE_URL)
 
     for i, (name, original) in enumerate(picked, 1):
-        print(f"\n{'='*70}")
+        print(f"\n{'=' * 70}")
         print(f"Function {i}/{len(picked)}: {name}  ({len(original)} chars)")
-        print(f"{'='*70}")
+        print(f"{'=' * 70}")
         print("--- Original (Ghidra) ---")
         print(original)
         print()

@@ -10,6 +10,7 @@ from bainary.lift.backends.base import BackendRegistry, LifterBackend
 
 def test_backend_registry_has_at_least_one_backend():
     from bainary.lift.backends import default_registry
+
     reg = default_registry()
     if not reg._backends:  # type: ignore[attr-defined]
         pytest.skip("No backends installed")
@@ -19,6 +20,7 @@ def test_backend_registry_has_at_least_one_backend():
 
 def test_backend_registry_resolve_known_backend():
     from bainary.lift.backends import default_registry
+
     reg = default_registry()
     if "ghidra_headless" not in reg._backends:  # type: ignore[attr-defined]
         if "lief_capstone" in reg._backends:  # type: ignore[attr-defined]
@@ -58,12 +60,14 @@ def test_lifter_backend_abc_cannot_be_instantiated():
 
 def test_ghidra_backend_name():
     from bainary.lift.backends.ghidra_headless import GhidraHeadlessBackend
+
     b = GhidraHeadlessBackend(ghidra_home=Path("/opt/ghidra"))
     assert b.name == "ghidra_headless"
 
 
 def test_ghidra_backend_ghidra_version_reads_application_properties(tmp_path):
     from bainary.lift.backends.ghidra_headless import GhidraHeadlessBackend
+
     ghidra_home = tmp_path / "ghidra"
     ghidra_props = ghidra_home / "Ghidra"
     ghidra_props.mkdir(parents=True)
@@ -76,6 +80,7 @@ def test_ghidra_backend_ghidra_version_reads_application_properties(tmp_path):
 
 def test_ghidra_backend_ghidra_version_missing_raises(tmp_path):
     from bainary.lift.backends.ghidra_headless import GhidraHeadlessBackend
+
     b = GhidraHeadlessBackend(ghidra_home=tmp_path / "nope")
     with pytest.raises((EnvironmentError, FileNotFoundError)):
         b.ghidra_version()
@@ -83,6 +88,7 @@ def test_ghidra_backend_ghidra_version_missing_raises(tmp_path):
 
 def test_ghidra_backend_lift_invokes_subprocess(tmp_path, monkeypatch):
     from bainary.lift.backends.ghidra_headless import GhidraHeadlessBackend
+
     ghidra_home = tmp_path / "ghidra"
     props_dir = ghidra_home / "Ghidra"
     props_dir.mkdir(parents=True)
@@ -100,16 +106,27 @@ def test_ghidra_backend_lift_invokes_subprocess(tmp_path, monkeypatch):
         for i, tok in enumerate(cmd_list):
             if tok == "-postScriptArgs" and i + 1 < len(cmd_list):
                 out_path = cmd_list[i + 1]
-                Path(out_path).write_text(json.dumps({
-                    "schema_version": "1.0",
-                    "binary": {
-                        "path": str(binary), "sha256": "ab" * 32,
-                        "format": "ELF", "arch": "x64", "endianness": "little",
-                        "entry_point": "0x400000", "base_address": "0x400000",
-                    },
-                    "sections": [], "imports": [], "exports": [], "strings": [],
-                    "functions": [],
-                }))
+                Path(out_path).write_text(
+                    json.dumps(
+                        {
+                            "schema_version": "1.0",
+                            "binary": {
+                                "path": str(binary),
+                                "sha256": "ab" * 32,
+                                "format": "ELF",
+                                "arch": "x64",
+                                "endianness": "little",
+                                "entry_point": "0x400000",
+                                "base_address": "0x400000",
+                            },
+                            "sections": [],
+                            "imports": [],
+                            "exports": [],
+                            "strings": [],
+                            "functions": [],
+                        }
+                    )
+                )
                 break
         result = MagicMock()
         result.returncode = 0
