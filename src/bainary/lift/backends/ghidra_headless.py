@@ -127,6 +127,11 @@ class GhidraHeadlessBackend(LifterBackend):
                     f"analyzeHeadless did not produce {out_json}. stderr:\n{proc.stderr}"
                 )
 
+            if proc.stderr:
+                log.debug("Ghidra stderr:\n%s", proc.stderr)
+            if proc.stdout:
+                log.debug("Ghidra stdout:\n%s", proc.stdout)
+
             raw: dict[str, Any] = json.loads(out_json.read_text())
 
         raw.setdefault("binary", {})["sha256"] = sha

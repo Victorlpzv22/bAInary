@@ -127,7 +127,11 @@ def _emit_function(func, decomp, listing, blockModel, refMgr, monitor):
             if ba is None:
                 continue
             nodes_set.add(ba)
-            for d in block.getDestinations(monitor):
+            # getDestinations returns a SimpleDestReferenceIterator which
+            # is not iterable in Jython; iterate manually.
+            dest_iter = block.getDestinations(monitor)
+            while dest_iter.hasNext():
+                d = dest_iter.next()
                 da = _addr(d.getDestinationAddress())
                 if da is not None:
                     edges.append([ba, da])
@@ -139,37 +143,66 @@ def _emit_function(func, decomp, listing, blockModel, refMgr, monitor):
     # Basic blocks in detail
     try:
         block_iter = blockModel.getCodeBlocksContaining(func.getBody(), monitor)
+        addr_factory = currentProgram.getAddressFactory()
+        n_blocks = 0
         while block_iter.hasNext():
             block = block_iter.next()
             baddr = _addr(block.getFirstStartAddress())
             if baddr is None:
                 continue
+            n_blocks += 1
             instrs = []
-            ins_iter = listing.getInstructions(block, True)
+            # listing.getInstructions expects an AddressSetView; build one
+            # from the block's address range via the AddressFactory to get
+            # exactly this block's instructions (not the whole function's).
+            try:
+                block_range = addr_factory.getAddressSet(
+                    block.getFirstStartAddress(), block.getMaxAddress()
+                )
+                ins_iter = listing.getInstructions(block_range, True)
+            except Exception as e:
+                print("WARN: block-range listing failed, falling back to function:", e)
+                ins_iter = listing.getInstructions(func.getBody(), True)
             while ins_iter.hasNext():
                 ins = ins_iter.next()
                 try:
                     operands = [str(o) for o in ins.getOpObjects(0)]
                 except Exception:
                     operands = []
+                # getBytes() returns an array.array in Jython; iterate it
+                try:
+                    raw_bytes = ins.getBytes()
+                    byte_str = " ".join("%02x" % (b & 0xff) for b in raw_bytes)
+                except Exception:
+                    byte_str = ""
                 instrs.append({
                     "address": _addr(ins.getAddress()),
-                    "bytes": " ".join("%02x" % b for b in ins.getBytes().getValue() or []),
+                    "bytes": byte_str,
                     "mnemonic": str(ins.getMnemonicString()),
                     "operands": operands,
                     "comment": None,
                 })
-            succs = [_addr(d.getDestinationAddress()) for d in block.getDestinations(monitor)]
-            succs = [s for s in succs if s is not None]
-            # Heuristic terminator
-            last = instrs[-1]["mnemonic"] if instrs else ""
-            term_map = {
-                "jmp": "jmp", "je": "cjmp", "jne": "cjmp", "jg": "cjmp",
-                "jge": "cjmp", "jl": "cjmp", "jle": "cjmp", "ja": "cjmp",
-                "jae": "cjmp", "jb": "cjmp", "jbe": "cjmp", "ret": "ret",
-                "call": "call", "hlt": "ret",
-            }
-            term = term_map.get(last, "other")
+            succs = []
+            dest_iter = block.getDestinations(monitor)
+            while dest_iter.hasNext():
+                d = dest_iter.next()
+                da = _addr(d.getDestinationAddress())
+                if da is not None:
+                    succs.append(da)
+            # Heuristic terminator: Ghidra returns mnemonics in uppercase
+            last = (instrs[-1]["mnemonic"] if instrs else "").lower()
+            if last.startswith("j") and last != "jmp":
+                term = "cjmp"
+            elif last == "jmp":
+                term = "jmp"
+            elif last == "ret":
+                term = "ret"
+            elif last == "call":
+                term = "call"
+            elif last in ("hlt", "ud2", "int3"):
+                term = "ret"
+            else:
+                term = "fall_through" if succs else "other"
             func_data["basic_blocks"].append({
                 "address": baddr,
                 "instructions": instrs,

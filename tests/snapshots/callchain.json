@@ -14,7 +14,103 @@
     {
       "address": "0x401000",
       "assembly": "ENDBR64 \nSUB RSP,0x8 RSP\nMOV RAX,qword ptr [0x00403fd8] RAX\nTEST RAX,RAX RAX\nJZ 0x00401016 00401016\nCALL RAX RAX\nADD RSP,0x8 RSP\nRET",
-      "basic_blocks": [],
+      "basic_blocks": [
+        {
+          "address": "0x401000",
+          "instructions": [
+            {
+              "address": "0x401000",
+              "bytes": "f3 0f 1e fa",
+              "comment": null,
+              "mnemonic": "ENDBR64",
+              "operands": []
+            },
+            {
+              "address": "0x401004",
+              "bytes": "48 83 ec 08",
+              "comment": null,
+              "mnemonic": "SUB",
+              "operands": [
+                "RSP"
+              ]
+            },
+            {
+              "address": "0x401008",
+              "bytes": "48 8b 05 c9 2f 00 00",
+              "comment": null,
+              "mnemonic": "MOV",
+              "operands": [
+                "RAX"
+              ]
+            },
+            {
+              "address": "0x40100f",
+              "bytes": "48 85 c0",
+              "comment": null,
+              "mnemonic": "TEST",
+              "operands": [
+                "RAX"
+              ]
+            },
+            {
+              "address": "0x401012",
+              "bytes": "74 02",
+              "comment": null,
+              "mnemonic": "JZ",
+              "operands": [
+                "00401016"
+              ]
+            }
+          ],
+          "successors": [
+            "0x401016",
+            "0x401014"
+          ],
+          "terminator": "cjmp"
+        },
+        {
+          "address": "0x401014",
+          "instructions": [
+            {
+              "address": "0x401014",
+              "bytes": "ff d0",
+              "comment": null,
+              "mnemonic": "CALL",
+              "operands": [
+                "RAX"
+              ]
+            }
+          ],
+          "successors": [
+            "0x405010",
+            "0x401016"
+          ],
+          "terminator": "call"
+        },
+        {
+          "address": "0x401016",
+          "instructions": [
+            {
+              "address": "0x401016",
+              "bytes": "48 83 c4 08",
+              "comment": null,
+              "mnemonic": "ADD",
+              "operands": [
+                "RSP"
+              ]
+            },
+            {
+              "address": "0x40101a",
+              "bytes": "c3",
+              "comment": null,
+              "mnemonic": "RET",
+              "operands": []
+            }
+          ],
+          "successors": [],
+          "terminator": "ret"
+        }
+      ],
       "callees": [
         {
           "address": "0x405010",
@@ -25,14 +121,35 @@
       "callers": [],
       "calling_convention": "stdcall",
       "cfg": {
-        "edges": [],
-        "nodes": []
+        "edges": [
+          [
+            "0x401000",
+            "0x401016"
+          ],
+          [
+            "0x401000",
+            "0x401014"
+          ],
+          [
+            "0x401014",
+            "0x405010"
+          ],
+          [
+            "0x401014",
+            "0x401016"
+          ]
+        ],
+        "nodes": [
+          "0x401000",
+          "0x401014",
+          "0x401016"
+        ]
       },
       "decompiler": "ghidra",
       "is_thunk": false,
       "name": "_init",
       "pseudocode": "int _init(EVP_PKEY_CTX *ctx)\n\n{\n  int iVar1;\n  \n  iVar1 = __gmon_start__();\n  return iVar1;\n}",
-      "pseudocode_error": "CFG extraction failed: 'ghidra.program.model.block.SimpleDestReferenceIterator' object is not iterable",
+      "pseudocode_error": null,
       "signature": "int __stdcall _init(EVP_PKEY_CTX * ctx)",
       "size_bytes": 27,
       "stack_frame": {
@@ -43,7 +160,130 @@
     {
       "address": "0x401020",
       "assembly": "ENDBR64 \nXOR EBP,EBP EBP\nMOV R9,RDX R9\nPOP RSI RSI\nMOV RDX,RSP RDX\nAND RSP,-0x10 RSP\nPUSH RAX RAX\nPUSH RSP RSP\nXOR R8D,R8D R8D\nXOR ECX,ECX ECX\nMOV RDI,0x40112d RDI\nCALL qword ptr [0x00403fc8] 00403fc8\nHLT",
-      "basic_blocks": [],
+      "basic_blocks": [
+        {
+          "address": "0x401020",
+          "instructions": [
+            {
+              "address": "0x401020",
+              "bytes": "f3 0f 1e fa",
+              "comment": null,
+              "mnemonic": "ENDBR64",
+              "operands": []
+            },
+            {
+              "address": "0x401024",
+              "bytes": "31 ed",
+              "comment": null,
+              "mnemonic": "XOR",
+              "operands": [
+                "EBP"
+              ]
+            },
+            {
+              "address": "0x401026",
+              "bytes": "49 89 d1",
+              "comment": null,
+              "mnemonic": "MOV",
+              "operands": [
+                "R9"
+              ]
+            },
+            {
+              "address": "0x401029",
+              "bytes": "5e",
+              "comment": null,
+              "mnemonic": "POP",
+              "operands": [
+                "RSI"
+              ]
+            },
+            {
+              "address": "0x40102a",
+              "bytes": "48 89 e2",
+              "comment": null,
+              "mnemonic": "MOV",
+              "operands": [
+                "RDX"
+              ]
+            },
+            {
+              "address": "0x40102d",
+              "bytes": "48 83 e4 f0",
+              "comment": null,
+              "mnemonic": "AND",
+              "operands": [
+                "RSP"
+              ]
+            },
+            {
+              "address": "0x401031",
+              "bytes": "50",
+              "comment": null,
+              "mnemonic": "PUSH",
+              "operands": [
+                "RAX"
+              ]
+            },
+            {
+              "address": "0x401032",
+              "bytes": "54",
+              "comment": null,
+              "mnemonic": "PUSH",
+              "operands": [
+                "RSP"
+              ]
+            },
+            {
+              "address": "0x401033",
+              "bytes": "45 31 c0",
+              "comment": null,
+              "mnemonic": "XOR",
+              "operands": [
+                "R8D"
+              ]
+            },
+            {
+              "address": "0x401036",
+              "bytes": "31 c9",
+              "comment": null,
+              "mnemonic": "XOR",
+              "operands": [
+                "ECX"
+              ]
+            },
+            {
+              "address": "0x401038",
+              "bytes": "48 c7 c7 2d 11 40 00",
+              "comment": null,
+              "mnemonic": "MOV",
+              "operands": [
+                "RDI"
+              ]
+            },
+            {
+              "address": "0x40103f",
+              "bytes": "ff 15 83 2f 00 00",
+              "comment": null,
+              "mnemonic": "CALL",
+              "operands": [
+                "00403fc8"
+              ]
+            },
+            {
+              "address": "0x401045",
+              "bytes": "f4",
+              "comment": null,
+              "mnemonic": "HLT",
+              "operands": []
+            }
+          ],
+          "successors": [
+            "0x405000"
+          ],
+          "terminator": "ret"
+        }
+      ],
       "callees": [
         {
           "address": "0x405000",
@@ -54,14 +294,21 @@
       "callers": [],
       "calling_convention": "unknown",
       "cfg": {
-        "edges": [],
-        "nodes": []
+        "edges": [
+          [
+            "0x401020",
+            "0x405000"
+          ]
+        ],
+        "nodes": [
+          "0x401020"
+        ]
       },
       "decompiler": "ghidra",
       "is_thunk": false,
       "name": "_start",
       "pseudocode": "void processEntry _start(undefined8 param_1,undefined8 param_2)\n\n{\n  undefined1 auStack_8 [8];\n  \n  __libc_start_main(main,param_2,&stack0x00000008,0,0,param_1,auStack_8);\n  do {\n                    /* WARNING: Do nothing block with infinite loop */\n  } while( true );\n}",
-      "pseudocode_error": "CFG extraction failed: 'ghidra.program.model.block.SimpleDestReferenceIterator' object is not iterable",
+      "pseudocode_error": null,
       "signature": "undefined processEntry _start(void)",
       "size_bytes": 38,
       "stack_frame": {
@@ -79,19 +326,43 @@
     {
       "address": "0x401050",
       "assembly": "ENDBR64 \nRET",
-      "basic_blocks": [],
+      "basic_blocks": [
+        {
+          "address": "0x401050",
+          "instructions": [
+            {
+              "address": "0x401050",
+              "bytes": "f3 0f 1e fa",
+              "comment": null,
+              "mnemonic": "ENDBR64",
+              "operands": []
+            },
+            {
+              "address": "0x401054",
+              "bytes": "c3",
+              "comment": null,
+              "mnemonic": "RET",
+              "operands": []
+            }
+          ],
+          "successors": [],
+          "terminator": "ret"
+        }
+      ],
       "callees": [],
       "callers": [],
       "calling_convention": "unknown",
       "cfg": {
         "edges": [],
-        "nodes": []
+        "nodes": [
+          "0x401050"
+        ]
       },
       "decompiler": "ghidra",
       "is_thunk": false,
       "name": "_dl_relocate_static_pie",
       "pseudocode": "void _dl_relocate_static_pie(void)\n\n{\n  return;\n}",
-      "pseudocode_error": "CFG extraction failed: 'ghidra.program.model.block.SimpleDestReferenceIterator' object is not iterable",
+      "pseudocode_error": null,
       "signature": "undefined _dl_relocate_static_pie(void)",
       "size_bytes": 5,
       "stack_frame": {
@@ -102,7 +373,123 @@
     {
       "address": "0x401060",
       "assembly": "MOV EAX,0x404010 EAX\nCMP RAX,0x404010 RAX\nJZ 0x00401080 00401080\nMOV RAX,qword ptr [0x00403fd0] RAX\nTEST RAX,RAX RAX\nJZ 0x00401080 00401080\nMOV EDI,0x404010 EDI\nJMP RAX RAX\nRET",
-      "basic_blocks": [],
+      "basic_blocks": [
+        {
+          "address": "0x401060",
+          "instructions": [
+            {
+              "address": "0x401060",
+              "bytes": "b8 10 40 40 00",
+              "comment": null,
+              "mnemonic": "MOV",
+              "operands": [
+                "EAX"
+              ]
+            },
+            {
+              "address": "0x401065",
+              "bytes": "48 3d 10 40 40 00",
+              "comment": null,
+              "mnemonic": "CMP",
+              "operands": [
+                "RAX"
+              ]
+            },
+            {
+              "address": "0x40106b",
+              "bytes": "74 13",
+              "comment": null,
+              "mnemonic": "JZ",
+              "operands": [
+                "00401080"
+              ]
+            }
+          ],
+          "successors": [
+            "0x401080",
+            "0x40106d"
+          ],
+          "terminator": "cjmp"
+        },
+        {
+          "address": "0x40106d",
+          "instructions": [
+            {
+              "address": "0x40106d",
+              "bytes": "48 8b 05 5c 2f 00 00",
+              "comment": null,
+              "mnemonic": "MOV",
+              "operands": [
+                "RAX"
+              ]
+            },
+            {
+              "address": "0x401074",
+              "bytes": "48 85 c0",
+              "comment": null,
+              "mnemonic": "TEST",
+              "operands": [
+                "RAX"
+              ]
+            },
+            {
+              "address": "0x401077",
+              "bytes": "74 07",
+              "comment": null,
+              "mnemonic": "JZ",
+              "operands": [
+                "00401080"
+              ]
+            }
+          ],
+          "successors": [
+            "0x401080",
+            "0x401079"
+          ],
+          "terminator": "cjmp"
+        },
+        {
+          "address": "0x401079",
+          "instructions": [
+            {
+              "address": "0x401079",
+              "bytes": "bf 10 40 40 00",
+              "comment": null,
+              "mnemonic": "MOV",
+              "operands": [
+                "EDI"
+              ]
+            },
+            {
+              "address": "0x40107e",
+              "bytes": "ff e0",
+              "comment": null,
+              "mnemonic": "JMP",
+              "operands": [
+                "RAX"
+              ]
+            }
+          ],
+          "successors": [
+            "0x405008"
+          ],
+          "terminator": "jmp"
+        },
+        {
+          "address": "0x401080",
+          "instructions": [
+            {
+              "address": "0x401080",
+              "bytes": "c3",
+              "comment": null,
+              "mnemonic": "RET",
+              "operands": []
+            }
+          ],
+          "successors": [],
+          "terminator": "ret"
+        }
+      ],
       "callees": [
         {
           "address": "0x405008",
@@ -119,14 +506,40 @@
       ],
       "calling_convention": "unknown",
       "cfg": {
-        "edges": [],
-        "nodes": []
+        "edges": [
+          [
+            "0x401060",
+            "0x401080"
+          ],
+          [
+            "0x401060",
+            "0x40106d"
+          ],
+          [
+            "0x40106d",
+            "0x401080"
+          ],
+          [
+            "0x40106d",
+            "0x401079"
+          ],
+          [
+            "0x401079",
+            "0x405008"
+          ]
+        ],
+        "nodes": [
+          "0x401060",
+          "0x40106d",
+          "0x401079",
+          "0x401080"
+        ]
       },
       "decompiler": "ghidra",
       "is_thunk": false,
       "name": "deregister_tm_clones",
       "pseudocode": "/* WARNING: Removing unreachable block (ram,0x0040106d) */\n/* WARNING: Removing unreachable block (ram,0x00401079) */\n\nvoid deregister_tm_clones(void)\n\n{\n  return;\n}",
-      "pseudocode_error": "CFG extraction failed: 'ghidra.program.model.block.SimpleDestReferenceIterator' object is not iterable",
+      "pseudocode_error": null,
       "signature": "undefined deregister_tm_clones(void)",
       "size_bytes": 33,
       "stack_frame": {
@@ -137,7 +550,168 @@
     {
       "address": "0x401090",
       "assembly": "MOV ESI,0x404010 ESI\nSUB RSI,0x404010 RSI\nMOV RAX,RSI RAX\nSHR RSI,0x3f RSI\nSAR RAX,0x3 RAX\nADD RSI,RAX RSI\nSAR RSI,0x1 RSI\nJZ 0x004010c8 004010c8\nMOV RAX,qword ptr [0x00403fe0] RAX\nTEST RAX,RAX RAX\nJZ 0x004010c8 004010c8\nMOV EDI,0x404010 EDI\nJMP RAX RAX\nRET",
-      "basic_blocks": [],
+      "basic_blocks": [
+        {
+          "address": "0x401090",
+          "instructions": [
+            {
+              "address": "0x401090",
+              "bytes": "be 10 40 40 00",
+              "comment": null,
+              "mnemonic": "MOV",
+              "operands": [
+                "ESI"
+              ]
+            },
+            {
+              "address": "0x401095",
+              "bytes": "48 81 ee 10 40 40 00",
+              "comment": null,
+              "mnemonic": "SUB",
+              "operands": [
+                "RSI"
+              ]
+            },
+            {
+              "address": "0x40109c",
+              "bytes": "48 89 f0",
+              "comment": null,
+              "mnemonic": "MOV",
+              "operands": [
+                "RAX"
+              ]
+            },
+            {
+              "address": "0x40109f",
+              "bytes": "48 c1 ee 3f",
+              "comment": null,
+              "mnemonic": "SHR",
+              "operands": [
+                "RSI"
+              ]
+            },
+            {
+              "address": "0x4010a3",
+              "bytes": "48 c1 f8 03",
+              "comment": null,
+              "mnemonic": "SAR",
+              "operands": [
+                "RAX"
+              ]
+            },
+            {
+              "address": "0x4010a7",
+              "bytes": "48 01 c6",
+              "comment": null,
+              "mnemonic": "ADD",
+              "operands": [
+                "RSI"
+              ]
+            },
+            {
+              "address": "0x4010aa",
+              "bytes": "48 d1 fe",
+              "comment": null,
+              "mnemonic": "SAR",
+              "operands": [
+                "RSI"
+              ]
+            },
+            {
+              "address": "0x4010ad",
+              "bytes": "74 19",
+              "comment": null,
+              "mnemonic": "JZ",
+              "operands": [
+                "004010c8"
+              ]
+            }
+          ],
+          "successors": [
+            "0x4010c8",
+            "0x4010af"
+          ],
+          "terminator": "cjmp"
+        },
+        {
+          "address": "0x4010af",
+          "instructions": [
+            {
+              "address": "0x4010af",
+              "bytes": "48 8b 05 2a 2f 00 00",
+              "comment": null,
+              "mnemonic": "MOV",
+              "operands": [
+                "RAX"
+              ]
+            },
+            {
+              "address": "0x4010b6",
+              "bytes": "48 85 c0",
+              "comment": null,
+              "mnemonic": "TEST",
+              "operands": [
+                "RAX"
+              ]
+            },
+            {
+              "address": "0x4010b9",
+              "bytes": "74 0d",
+              "comment": null,
+              "mnemonic": "JZ",
+              "operands": [
+                "004010c8"
+              ]
+            }
+          ],
+          "successors": [
+            "0x4010c8",
+            "0x4010bb"
+          ],
+          "terminator": "cjmp"
+        },
+        {
+          "address": "0x4010bb",
+          "instructions": [
+            {
+              "address": "0x4010bb",
+              "bytes": "bf 10 40 40 00",
+              "comment": null,
+              "mnemonic": "MOV",
+              "operands": [
+                "EDI"
+              ]
+            },
+            {
+              "address": "0x4010c0",
+              "bytes": "ff e0",
+              "comment": null,
+              "mnemonic": "JMP",
+              "operands": [
+                "RAX"
+              ]
+            }
+          ],
+          "successors": [
+            "0x405018"
+          ],
+          "terminator": "jmp"
+        },
+        {
+          "address": "0x4010c8",
+          "instructions": [
+            {
+              "address": "0x4010c8",
+              "bytes": "c3",
+              "comment": null,
+              "mnemonic": "RET",
+              "operands": []
+            }
+          ],
+          "successors": [],
+          "terminator": "ret"
+        }
+      ],
       "callees": [
         {
           "address": "0x405018",
@@ -154,14 +728,40 @@
       ],
       "calling_convention": "unknown",
       "cfg": {
-        "edges": [],
-        "nodes": []
+        "edges": [
+          [
+            "0x401090",
+            "0x4010c8"
+          ],
+          [
+            "0x401090",
+            "0x4010af"
+          ],
+          [
+            "0x4010af",
+            "0x4010c8"
+          ],
+          [
+            "0x4010af",
+            "0x4010bb"
+          ],
+          [
+            "0x4010bb",
+            "0x405018"
+          ]
+        ],
+        "nodes": [
+          "0x401090",
+          "0x4010af",
+          "0x4010bb",
+          "0x4010c8"
+        ]
       },
       "decompiler": "ghidra",
       "is_thunk": false,
       "name": "register_tm_clones",
       "pseudocode": "/* WARNING: Removing unreachable block (ram,0x004010af) */\n/* WARNING: Removing unreachable block (ram,0x004010bb) */\n\nvoid register_tm_clones(void)\n\n{\n  return;\n}",
-      "pseudocode_error": "CFG extraction failed: 'ghidra.program.model.block.SimpleDestReferenceIterator' object is not iterable",
+      "pseudocode_error": null,
       "signature": "undefined register_tm_clones(void)",
       "size_bytes": 51,
       "stack_frame": {
@@ -172,7 +772,118 @@
     {
       "address": "0x4010d0",
       "assembly": "ENDBR64 \nCMP byte ptr [0x00404010],0x0 00404010\nJNZ 0x004010f0 004010f0\nPUSH RBP RBP\nMOV RBP,RSP RBP\nCALL 0x00401060 00401060\nMOV byte ptr [0x00404010],0x1 00404010\nPOP RBP RBP\nRET \nRET",
-      "basic_blocks": [],
+      "basic_blocks": [
+        {
+          "address": "0x4010d0",
+          "instructions": [
+            {
+              "address": "0x4010d0",
+              "bytes": "f3 0f 1e fa",
+              "comment": null,
+              "mnemonic": "ENDBR64",
+              "operands": []
+            },
+            {
+              "address": "0x4010d4",
+              "bytes": "80 3d 35 2f 00 00 00",
+              "comment": null,
+              "mnemonic": "CMP",
+              "operands": [
+                "00404010"
+              ]
+            },
+            {
+              "address": "0x4010db",
+              "bytes": "75 13",
+              "comment": null,
+              "mnemonic": "JNZ",
+              "operands": [
+                "004010f0"
+              ]
+            }
+          ],
+          "successors": [
+            "0x4010f0",
+            "0x4010dd"
+          ],
+          "terminator": "cjmp"
+        },
+        {
+          "address": "0x4010dd",
+          "instructions": [
+            {
+              "address": "0x4010dd",
+              "bytes": "55",
+              "comment": null,
+              "mnemonic": "PUSH",
+              "operands": [
+                "RBP"
+              ]
+            },
+            {
+              "address": "0x4010de",
+              "bytes": "48 89 e5",
+              "comment": null,
+              "mnemonic": "MOV",
+              "operands": [
+                "RBP"
+              ]
+            },
+            {
+              "address": "0x4010e1",
+              "bytes": "e8 7a ff ff ff",
+              "comment": null,
+              "mnemonic": "CALL",
+              "operands": [
+                "00401060"
+              ]
+            },
+            {
+              "address": "0x4010e6",
+              "bytes": "c6 05 23 2f 00 00 01",
+              "comment": null,
+              "mnemonic": "MOV",
+              "operands": [
+                "00404010"
+              ]
+            },
+            {
+              "address": "0x4010ed",
+              "bytes": "5d",
+              "comment": null,
+              "mnemonic": "POP",
+              "operands": [
+                "RBP"
+              ]
+            },
+            {
+              "address": "0x4010ee",
+              "bytes": "c3",
+              "comment": null,
+              "mnemonic": "RET",
+              "operands": []
+            }
+          ],
+          "successors": [
+            "0x401060"
+          ],
+          "terminator": "ret"
+        },
+        {
+          "address": "0x4010f0",
+          "instructions": [
+            {
+              "address": "0x4010f0",
+              "bytes": "c3",
+              "comment": null,
+              "mnemonic": "RET",
+              "operands": []
+            }
+          ],
+          "successors": [],
+          "terminator": "ret"
+        }
+      ],
       "callees": [
         {
           "address": "0x401060",
@@ -183,14 +894,31 @@
       "callers": [],
       "calling_convention": "unknown",
       "cfg": {
-        "edges": [],
-        "nodes": []
+        "edges": [
+          [
+            "0x4010d0",
+            "0x4010f0"
+          ],
+          [
+            "0x4010d0",
+            "0x4010dd"
+          ],
+          [
+            "0x4010dd",
+            "0x401060"
+          ]
+        ],
+        "nodes": [
+          "0x4010d0",
+          "0x4010dd",
+          "0x4010f0"
+        ]
       },
       "decompiler": "ghidra",
       "is_thunk": false,
       "name": "__do_global_dtors_aux",
       "pseudocode": "void __do_global_dtors_aux(void)\n\n{\n  if (completed_0 == '\\0') {\n    deregister_tm_clones();\n    completed_0 = 1;\n    return;\n  }\n  return;\n}",
-      "pseudocode_error": "CFG extraction failed: 'ghidra.program.model.block.SimpleDestReferenceIterator' object is not iterable",
+      "pseudocode_error": null,
       "signature": "undefined __do_global_dtors_aux(void)",
       "size_bytes": 32,
       "stack_frame": {
@@ -201,7 +929,33 @@
     {
       "address": "0x401100",
       "assembly": "ENDBR64 \nJMP 0x00401090 00401090",
-      "basic_blocks": [],
+      "basic_blocks": [
+        {
+          "address": "0x401100",
+          "instructions": [
+            {
+              "address": "0x401100",
+              "bytes": "f3 0f 1e fa",
+              "comment": null,
+              "mnemonic": "ENDBR64",
+              "operands": []
+            },
+            {
+              "address": "0x401104",
+              "bytes": "eb 8a",
+              "comment": null,
+              "mnemonic": "JMP",
+              "operands": [
+                "00401090"
+              ]
+            }
+          ],
+          "successors": [
+            "0x401090"
+          ],
+          "terminator": "jmp"
+        }
+      ],
       "callees": [
         {
           "address": "0x401090",
@@ -212,14 +966,21 @@
       "callers": [],
       "calling_convention": "unknown",
       "cfg": {
-        "edges": [],
-        "nodes": []
+        "edges": [
+          [
+            "0x401100",
+            "0x401090"
+          ]
+        ],
+        "nodes": [
+          "0x401100"
+        ]
       },
       "decompiler": "ghidra",
       "is_thunk": true,
       "name": "frame_dummy",
       "pseudocode": "void frame_dummy(void)\n\n{\n  register_tm_clones();\n  return;\n}",
-      "pseudocode_error": "CFG extraction failed: 'ghidra.program.model.block.SimpleDestReferenceIterator' object is not iterable",
+      "pseudocode_error": null,
       "signature": "undefined frame_dummy(void)",
       "size_bytes": 6,
       "stack_frame": {
@@ -230,7 +991,58 @@
     {
       "address": "0x401106",
       "assembly": "PUSH RBP RBP\nMOV RBP,RSP RBP\nMOV EAX,0x2a EAX\nPOP RBP RBP\nRET",
-      "basic_blocks": [],
+      "basic_blocks": [
+        {
+          "address": "0x401106",
+          "instructions": [
+            {
+              "address": "0x401106",
+              "bytes": "55",
+              "comment": null,
+              "mnemonic": "PUSH",
+              "operands": [
+                "RBP"
+              ]
+            },
+            {
+              "address": "0x401107",
+              "bytes": "48 89 e5",
+              "comment": null,
+              "mnemonic": "MOV",
+              "operands": [
+                "RBP"
+              ]
+            },
+            {
+              "address": "0x40110a",
+              "bytes": "b8 2a 00 00 00",
+              "comment": null,
+              "mnemonic": "MOV",
+              "operands": [
+                "EAX"
+              ]
+            },
+            {
+              "address": "0x40110f",
+              "bytes": "5d",
+              "comment": null,
+              "mnemonic": "POP",
+              "operands": [
+                "RBP"
+              ]
+            },
+            {
+              "address": "0x401110",
+              "bytes": "c3",
+              "comment": null,
+              "mnemonic": "RET",
+              "operands": []
+            }
+          ],
+          "successors": [],
+          "terminator": "ret"
+        }
+      ],
       "callees": [],
       "callers": [
         {
@@ -242,13 +1054,15 @@
       "calling_convention": "stdcall",
       "cfg": {
         "edges": [],
-        "nodes": []
+        "nodes": [
+          "0x401106"
+        ]
       },
       "decompiler": "ghidra",
       "is_thunk": false,
       "name": "c",
       "pseudocode": "int c(void *param_1,void *param_2)\n\n{\n  return 0x2a;\n}",
-      "pseudocode_error": "CFG extraction failed: 'ghidra.program.model.block.SimpleDestReferenceIterator' object is not iterable",
+      "pseudocode_error": null,
       "signature": "int __stdcall c(void * param_1, void * param_2)",
       "size_bytes": 11,
       "stack_frame": {
@@ -259,7 +1073,69 @@
     {
       "address": "0x401111",
       "assembly": "PUSH RBP RBP\nMOV RBP,RSP RBP\nCALL 0x00401106 00401106\nADD EAX,0x1 EAX\nPOP RBP RBP\nRET",
-      "basic_blocks": [],
+      "basic_blocks": [
+        {
+          "address": "0x401111",
+          "instructions": [
+            {
+              "address": "0x401111",
+              "bytes": "55",
+              "comment": null,
+              "mnemonic": "PUSH",
+              "operands": [
+                "RBP"
+              ]
+            },
+            {
+              "address": "0x401112",
+              "bytes": "48 89 e5",
+              "comment": null,
+              "mnemonic": "MOV",
+              "operands": [
+                "RBP"
+              ]
+            },
+            {
+              "address": "0x401115",
+              "bytes": "e8 ec ff ff ff",
+              "comment": null,
+              "mnemonic": "CALL",
+              "operands": [
+                "00401106"
+              ]
+            },
+            {
+              "address": "0x40111a",
+              "bytes": "83 c0 01",
+              "comment": null,
+              "mnemonic": "ADD",
+              "operands": [
+                "EAX"
+              ]
+            },
+            {
+              "address": "0x40111d",
+              "bytes": "5d",
+              "comment": null,
+              "mnemonic": "POP",
+              "operands": [
+                "RBP"
+              ]
+            },
+            {
+              "address": "0x40111e",
+              "bytes": "c3",
+              "comment": null,
+              "mnemonic": "RET",
+              "operands": []
+            }
+          ],
+          "successors": [
+            "0x401106"
+          ],
+          "terminator": "ret"
+        }
+      ],
       "callees": [
         {
           "address": "0x401106",
@@ -276,14 +1152,21 @@
       ],
       "calling_convention": "unknown",
       "cfg": {
-        "edges": [],
-        "nodes": []
+        "edges": [
+          [
+            "0x401111",
+            "0x401106"
+          ]
+        ],
+        "nodes": [
+          "0x401111"
+        ]
       },
       "decompiler": "ghidra",
       "is_thunk": false,
       "name": "b",
       "pseudocode": "/* WARNING: Unknown calling convention */\n\nint b(void)\n\n{\n  int iVar1;\n  void *in_RSI;\n  void *in_RDI;\n  \n  iVar1 = c(in_RDI,in_RSI);\n  return iVar1 + 1;\n}",
-      "pseudocode_error": "CFG extraction failed: 'ghidra.program.model.block.SimpleDestReferenceIterator' object is not iterable",
+      "pseudocode_error": null,
       "signature": "int b(void)",
       "size_bytes": 14,
       "stack_frame": {
@@ -294,7 +1177,69 @@
     {
       "address": "0x40111f",
       "assembly": "PUSH RBP RBP\nMOV RBP,RSP RBP\nCALL 0x00401111 00401111\nADD EAX,0x1 EAX\nPOP RBP RBP\nRET",
-      "basic_blocks": [],
+      "basic_blocks": [
+        {
+          "address": "0x40111f",
+          "instructions": [
+            {
+              "address": "0x40111f",
+              "bytes": "55",
+              "comment": null,
+              "mnemonic": "PUSH",
+              "operands": [
+                "RBP"
+              ]
+            },
+            {
+              "address": "0x401120",
+              "bytes": "48 89 e5",
+              "comment": null,
+              "mnemonic": "MOV",
+              "operands": [
+                "RBP"
+              ]
+            },
+            {
+              "address": "0x401123",
+              "bytes": "e8 e9 ff ff ff",
+              "comment": null,
+              "mnemonic": "CALL",
+              "operands": [
+                "00401111"
+              ]
+            },
+            {
+              "address": "0x401128",
+              "bytes": "83 c0 01",
+              "comment": null,
+              "mnemonic": "ADD",
+              "operands": [
+                "EAX"
+              ]
+            },
+            {
+              "address": "0x40112b",
+              "bytes": "5d",
+              "comment": null,
+              "mnemonic": "POP",
+              "operands": [
+                "RBP"
+              ]
+            },
+            {
+              "address": "0x40112c",
+              "bytes": "c3",
+              "comment": null,
+              "mnemonic": "RET",
+              "operands": []
+            }
+          ],
+          "successors": [
+            "0x401111"
+          ],
+          "terminator": "ret"
+        }
+      ],
       "callees": [
         {
           "address": "0x401111",
@@ -311,14 +1256,21 @@
       ],
       "calling_convention": "unknown",
       "cfg": {
-        "edges": [],
-        "nodes": []
+        "edges": [
+          [
+            "0x40111f",
+            "0x401111"
+          ]
+        ],
+        "nodes": [
+          "0x40111f"
+        ]
       },
       "decompiler": "ghidra",
       "is_thunk": false,
       "name": "a",
       "pseudocode": "/* WARNING: Unknown calling convention */\n\nint a(void)\n\n{\n  int iVar1;\n  \n  iVar1 = b();\n  return iVar1 + 1;\n}",
-      "pseudocode_error": "CFG extraction failed: 'ghidra.program.model.block.SimpleDestReferenceIterator' object is not iterable",
+      "pseudocode_error": null,
       "signature": "int a(void)",
       "size_bytes": 14,
       "stack_frame": {
@@ -329,7 +1281,60 @@
     {
       "address": "0x40112d",
       "assembly": "PUSH RBP RBP\nMOV RBP,RSP RBP\nCALL 0x0040111f 0040111f\nPOP RBP RBP\nRET",
-      "basic_blocks": [],
+      "basic_blocks": [
+        {
+          "address": "0x40112d",
+          "instructions": [
+            {
+              "address": "0x40112d",
+              "bytes": "55",
+              "comment": null,
+              "mnemonic": "PUSH",
+              "operands": [
+                "RBP"
+              ]
+            },
+            {
+              "address": "0x40112e",
+              "bytes": "48 89 e5",
+              "comment": null,
+              "mnemonic": "MOV",
+              "operands": [
+                "RBP"
+              ]
+            },
+            {
+              "address": "0x401131",
+              "bytes": "e8 e9 ff ff ff",
+              "comment": null,
+              "mnemonic": "CALL",
+              "operands": [
+                "0040111f"
+              ]
+            },
+            {
+              "address": "0x401136",
+              "bytes": "5d",
+              "comment": null,
+              "mnemonic": "POP",
+              "operands": [
+                "RBP"
+              ]
+            },
+            {
+              "address": "0x401137",
+              "bytes": "c3",
+              "comment": null,
+              "mnemonic": "RET",
+              "operands": []
+            }
+          ],
+          "successors": [
+            "0x40111f"
+          ],
+          "terminator": "ret"
+        }
+      ],
       "callees": [
         {
           "address": "0x40111f",
@@ -346,14 +1351,21 @@
       ],
       "calling_convention": "unknown",
       "cfg": {
-        "edges": [],
-        "nodes": []
+        "edges": [
+          [
+            "0x40112d",
+            "0x40111f"
+          ]
+        ],
+        "nodes": [
+          "0x40112d"
+        ]
       },
       "decompiler": "ghidra",
       "is_thunk": false,
       "name": "main",
       "pseudocode": "/* WARNING: Unknown calling convention */\n\nint main(void)\n\n{\n  int iVar1;\n  \n  iVar1 = a();\n  return iVar1;\n}",
-      "pseudocode_error": "CFG extraction failed: 'ghidra.program.model.block.SimpleDestReferenceIterator' object is not iterable",
+      "pseudocode_error": null,
       "signature": "int main(void)",
       "size_bytes": 11,
       "stack_frame": {
@@ -364,19 +1376,61 @@
     {
       "address": "0x401138",
       "assembly": "ENDBR64 \nSUB RSP,0x8 RSP\nADD RSP,0x8 RSP\nRET",
-      "basic_blocks": [],
+      "basic_blocks": [
+        {
+          "address": "0x401138",
+          "instructions": [
+            {
+              "address": "0x401138",
+              "bytes": "f3 0f 1e fa",
+              "comment": null,
+              "mnemonic": "ENDBR64",
+              "operands": []
+            },
+            {
+              "address": "0x40113c",
+              "bytes": "48 83 ec 08",
+              "comment": null,
+              "mnemonic": "SUB",
+              "operands": [
+                "RSP"
+              ]
+            },
+            {
+              "address": "0x401140",
+              "bytes": "48 83 c4 08",
+              "comment": null,
+              "mnemonic": "ADD",
+              "operands": [
+                "RSP"
+              ]
+            },
+            {
+              "address": "0x401144",
+              "bytes": "c3",
+              "comment": null,
+              "mnemonic": "RET",
+              "operands": []
+            }
+          ],
+          "successors": [],
+          "terminator": "ret"
+        }
+      ],
       "callees": [],
       "callers": [],
       "calling_convention": "unknown",
       "cfg": {
         "edges": [],
-        "nodes": []
+        "nodes": [
+          "0x401138"
+        ]
       },
       "decompiler": "ghidra",
       "is_thunk": false,
       "name": "_fini",
       "pseudocode": "void _fini(void)\n\n{\n  return;\n}",
-      "pseudocode_error": "CFG extraction failed: 'ghidra.program.model.block.SimpleDestReferenceIterator' object is not iterable",
+      "pseudocode_error": null,
       "signature": "undefined _fini(void)",
       "size_bytes": 13,
       "stack_frame": {
