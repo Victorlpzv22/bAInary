@@ -178,6 +178,10 @@ class CallGraph:
 
         GraphML is an XML-based interchange format supported by many
         graph tools (Gephi, yEd, Cytoscape).
+
+        Note: FunctionNode.pseudocode is omitted from the output — it
+        is the largest field and most graph viewers don't render it.
+        Use to_pickle for lossless storage.
         """
         g = nx.DiGraph()
         for addr, data in self._graph.nodes(data=True):

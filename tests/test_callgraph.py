@@ -220,8 +220,17 @@ def test_to_graphml(tmp_path):
     path = tmp_path / "graph.graphml"
     cg.to_graphml(path)
     assert path.exists()
+    # Verify it's valid XML and readable by NetworkX, and that the
+    # FunctionNode fields survive the GraphML round-trip
     loaded = nx.read_graphml(path)
     assert loaded.number_of_nodes() == 5
+    assert loaded.number_of_edges() == 3
+    main = loaded.nodes["0x401000"]
+    assert main["name"] == "main"
+    assert main["signature"] == "int main(void)"
+    assert main["is_external"] is False
+    assert main["is_thunk"] is False
+    assert main["size_bytes"] == 16
 
 
 def test_to_pickle(tmp_path):
