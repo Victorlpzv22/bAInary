@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from bainary.graph import CallGraph, FunctionNode
 from bainary.lift.artifact import BinaryArtifact
 
@@ -115,3 +117,56 @@ def test_graph_attribute_is_nx_digraph():
     cg = CallGraph.from_artifact(_chain_artifact())
     assert isinstance(cg.graph, nx.DiGraph)
     assert cg.graph.number_of_nodes() == 5
+
+
+def test_callers_of_direct():
+    cg = CallGraph.from_artifact(_chain_artifact())
+    assert cg.callers_of("a") == {"main"}
+
+
+def test_callers_of_transitive():
+    cg = CallGraph.from_artifact(_chain_artifact())
+    assert cg.callers_of("c", transitive=True) == {"main", "a", "b"}
+
+
+def test_callees_of_direct():
+    cg = CallGraph.from_artifact(_chain_artifact())
+    assert cg.callees_of("main") == {"a"}
+
+
+def test_callees_of_transitive():
+    cg = CallGraph.from_artifact(_chain_artifact())
+    assert cg.callees_of("main", transitive=True) == {"a", "b", "c"}
+
+
+def test_orphans():
+    """Orphans = functions that nobody calls (no incoming edges)."""
+    cg = CallGraph.from_artifact(_chain_artifact())
+    orphans = cg.orphans()
+    assert "main" in orphans
+    assert "printf" in orphans
+    assert "c" not in orphans
+
+
+def test_entry_points():
+    """Entry points = functions with no callers (same as orphans)."""
+    cg = CallGraph.from_artifact(_chain_artifact())
+    entries = cg.entry_points()
+    assert "main" in entries
+    assert "a" not in entries
+
+
+def test_unknown_function_raises():
+    cg = CallGraph.from_artifact(_chain_artifact())
+    with pytest.raises(ValueError, match="not in graph"):
+        cg.callers_of("nonexistent")
+
+
+def test_duplicate_names_raise():
+    artifact = _make_artifact([
+        _fn("0x401000", "foo", callees=[]),
+        _fn("0x402000", "foo", callees=[]),
+    ])
+    cg = CallGraph.from_artifact(artifact)
+    with pytest.raises(ValueError, match="duplicate"):
+        cg.callers_of("foo")

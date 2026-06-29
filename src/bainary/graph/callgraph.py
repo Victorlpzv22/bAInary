@@ -90,6 +90,47 @@ class CallGraph:
         """Mapping of address → FunctionNode for all nodes."""
         return {addr: data["node"] for addr, data in self._graph.nodes(data=True)}
 
+    def _resolve_name(self, name: str) -> str:
+        """Resolve a function name to its address.
+
+        Raises ValueError if the name doesn't exist or is duplicated.
+        """
+        matches = [
+            addr for addr, data in self._graph.nodes(data=True)
+            if data["node"].name == name
+        ]
+        if not matches:
+            raise ValueError(f"function {name!r} not in graph")
+        if len(matches) > 1:
+            raise ValueError(
+                f"duplicate function name {name!r}: addresses {matches}"
+            )
+        return matches[0]  # type: ignore[no-any-return]
+
+    def callers_of(self, name: str, *, transitive: bool = False) -> set[str]:
+        """Return the set of function names that call ``name``.
+
+        If ``transitive``, includes all transitive callers.
+        """
+        addr = self._resolve_name(name)
+        if transitive:
+            ancestors = nx.ancestors(self._graph, addr)
+        else:
+            ancestors = set(self._graph.predecessors(addr))
+        return {self._addr_to_name(a) for a in ancestors}
+
+    def callees_of(self, name: str, *, transitive: bool = False) -> set[str]:
+        """Return the set of function names that ``name`` calls.
+
+        If ``transitive``, includes all transitive callees.
+        """
+        addr = self._resolve_name(name)
+        if transitive:
+            descendants = nx.descendants(self._graph, addr)
+        else:
+            descendants = set(self._graph.successors(addr))
+        return {self._addr_to_name(a) for a in descendants}
+
     def orphans(self) -> set[str]:
         """Return the set of function names that nobody calls (no incoming edges)."""
         return {
