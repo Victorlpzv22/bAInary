@@ -91,7 +91,11 @@ def refine_function(
     response = client.chat.completions.create(
         model=model,
         max_tokens=2048,
-        temperature=0.0,  # deterministic for RE
+        # Moonshot AI's Kimi models only accept temperature=1. For models
+        # that accept 0, we'd prefer 0 for determinism in RE, but Kimi
+        # rejects it with HTTP 400. Set to 1 (the required value) for now;
+        # if a different model is used, override via the OpenAI SDK client.
+        temperature=1,
         messages=[
             {
                 "role": "user",
