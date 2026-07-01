@@ -13,6 +13,7 @@ from bainary.refine import (
     create_client,
 )
 from bainary.refine.errors import RefineError as RefineErrorDirect
+from bainary.refine.prompts import PROMPT_VERSION, build_prompt
 
 
 def test_refine_error_is_bainary_error():
@@ -70,3 +71,42 @@ def test_create_client_anthropic():
 def test_create_client_unknown_provider():
     with pytest.raises(RefineError, match="unknown provider"):
         create_client(provider="gemini", api_key="x")
+
+
+def test_prompt_version_is_string():
+    assert isinstance(PROMPT_VERSION, str)
+    assert len(PROMPT_VERSION) > 0
+
+
+def test_prompt_contains_function_name():
+    prompt = build_prompt("main", "int main() { return 0; }")
+    assert "main" in prompt
+
+
+def test_prompt_contains_pseudo_c():
+    prompt = build_prompt("main", "int main() { return 0; }")
+    assert "int main() { return 0; }" in prompt
+
+
+def test_prompt_contains_callers():
+    prompt = build_prompt("main", "int main() {}", caller_names=["_start"])
+    assert "_start" in prompt
+
+
+def test_prompt_contains_callees():
+    prompt = build_prompt("main", "int main() {}", callee_names=["add", "mul", "printf"])
+    assert "add" in prompt
+    assert "mul" in prompt
+    assert "printf" in prompt
+
+
+def test_prompt_no_callgraph_context():
+    prompt = build_prompt("main", "int main() {}")
+    assert "unknown" in prompt.lower()
+
+
+def test_prompt_has_refinement_instructions():
+    prompt = build_prompt("main", "int main() {}")
+    assert "rename" in prompt.lower()
+    assert "comment" in prompt.lower()
+    assert "code block" in prompt.lower()
