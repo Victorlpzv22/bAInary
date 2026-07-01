@@ -1,0 +1,31 @@
+# Normalize line endings
+* text=auto
+
+# Python sources
+*.py text diff=python
+*.pyi text diff=python
+*.toml text
+*.yaml text
+*.yml text
+*.cfg text
+*.ini text
+*.md text
+*.rst text
+
+# Binary files — keep as-is
+*.elf binary
+*.exe binary
+*.png binary
+*.jpg binary
+*.ico binary
+*.zip binary
+*.tar.gz binary
+
+# Generated / vendored — keep as-is
+*.graphml text
+*.json text
+*.pkl binary
+
+# Git
+*.gitignore text
+*.gitattributes text
