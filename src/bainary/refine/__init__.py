@@ -8,10 +8,11 @@ from bainary.refine.client import (
     create_client,
 )
 from bainary.refine.errors import RefineError
-from bainary.refine.refiner import Refiner
+
+# TODO(Task 5): re-export Refiner once refiner.py exists.
+# from bainary.refine.refiner import Refiner
 
 __all__ = [
-    "Refiner",
     "RefineError",
     "create_client",
     "LLMClient",

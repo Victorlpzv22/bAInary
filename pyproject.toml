@@ -55,9 +55,9 @@ ignore_missing_imports = true
 module = "bainary.lift.cli"
 disable_error_code = "untyped-decorator"
 
-# TODO(Task 2): remove once bainary.refine.client / bainary.refine.refiner exist.
+# TODO(Task 5): remove once bainary.refine.refiner exists.
 [[tool.mypy.overrides]]
-module = ["bainary.refine.client", "bainary.refine.refiner"]
+module = ["bainary.refine.refiner"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
