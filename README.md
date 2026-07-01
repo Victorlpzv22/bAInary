@@ -4,14 +4,13 @@ AI-assisted reverse engineering of compiled binaries.
 
 ## What's done
 
-- **Subsystem A — Binary parsing & lifting** (`bainary.lift`). Lift PE / ELF / Mach-O binaries (x86, x64, ARM, ARM64) to a structured JSON artifact with every function, its ASM, Ghidra's pseudo-C, control flow graph, callers/callees, sections, imports, exports, and strings. Two backends: `ghidra_headless` (with decompilation, 10–30s) and `lief_capstone` (ASM only, <1s).
+- **Subsystem A — Binary parsing & lifting** (`bainary.lift`). Lift PE / ELF / Mach-O binaries (x86, x64, ARM, ARM64) to a structured JSON artifact with every function, its ASM, Ghidra's pseudo-C, control flow graph, callers/callees, sections, imports, exports, and strings. Two backends: `ghidra_headless` (with decompilation, 10–30s) and `lief_capstone` (ASM only, <1s). Sha256-keyed cache with LRU eviction.
 - **Subsystem B — Call graph** (`bainary.graph`). Build a `networkx.DiGraph` from any `BinaryArtifact`. Query callers, callees (direct or transitive), orphans, cycles (SCCs), and shortest paths. Serialize to GraphML (interchange) or pickle (lossless). Hybrid API: ergonomic methods + raw `cg.graph` access.
-- **Subsystem D — LLM refinement (PoC)** (`scripts/poc_llm.py`). Send the smallest functions of a binary to an LLM and get back cleaned-up pseudo-C with meaningful variable names and comments. Validated end-to-end with OpenCode Go (Kimi K2.7 Code model). This is a proof-of-concept script, not a library — the real `D` subsystem (with batch processing, cache, tests) is still future work.
+- **Subsystem D — LLM refinement** (`bainary.refine`). Send decompiled pseudo-C to an LLM and get back cleaned-up code with meaningful variable names, removed warnings, and one-line comments. Multi-provider: OpenAI, Anthropic, OpenCode Go (GLM-5.2, Kimi K2.7 Code, DeepSeek V4, MiniMax M3, etc.). Cache prevents duplicate LLM calls. Filters for thunks, empty functions, and size. A `bainary-refine` package, not just a script.
 
 ## What's not done yet
 
 - **C — RAG / embeddings.** Index functions semantically and search for similar ones across a corpus. Requires a vector store and an embeddings model.
-- **D — full subsystem.** The PoC works, but the real `bainary.refine` package (refiner class, batch + parallel processing, refinement cache, smart function selection, mocked tests) hasn't been designed or built.
 - **E — GUI.** Side-by-side Hex/ASM vs. reconstructed code view.
 
 ## Install
@@ -34,6 +33,7 @@ pip install -e ".[dev]"
   ```
   (Put this in your shell rc or `.env`.)
 - The `lief_capstone` backend works without Ghidra (for fast ASM-only lifting). The `ghidra_headless` backend requires Ghidra + Java.
+- For subsystem D, an LLM API key (OpenCode Go, OpenAI, or Anthropic).
 
 ## CLI usage
 
@@ -90,14 +90,28 @@ cg.to_graphml("callgraph.graphml")
 cg.to_pickle("callgraph.pkl")
 ```
 
-### Subsystem D — LLM refinement (PoC)
+### Subsystem D — LLM refinement
 
-```bash
-export OPENCODE_APIKEY='sk-...'  # your OpenCode Go key
-python scripts/poc_llm.py path/to/target.elf
+```python
+import os
+from bainary.refine import Refiner, create_client
+
+client = create_client(
+    provider="openai",
+    api_key=os.environ["OPENCODE_APIKEY"],
+    base_url="https://opencode.ai/zen/go/v1",
+    model="kimi-k2.7-code",
+)
+
+refiner = Refiner(client=client)
+refined = refiner.refine(artifact, cg)  # returns a NEW BinaryArtifact
+
+# Original is untouched; refined has clean pseudo-C
+main = next(f for f in refined.functions if f.name == "main")
+print(main.pseudocode)
 ```
 
-Picks the N smallest functions (default 3), sends each to the LLM, and prints original and refined side-by-side. Defaults to model `kimi-k2.7-code` — override with `--model`.
+Supports OpenAI, Anthropic, and Mock (for tests) providers. Filters: `min_size`, `skip_thunks`, `skip_no_pseudocode`. Cache automatic.
 
 ## Building test fixtures
 
@@ -120,15 +134,30 @@ pytest
 pytest tests/test_snapshot.py --update-snapshots -m slow
 ```
 
-73 tests pass in the fast lane. 7 more (integration + snapshot) run when Ghidra is available.
+110 tests total: 103 pass in the fast lane, 7 more (integration + snapshot) run when Ghidra is available.
 
 ## Cache
 
-Lifted artifacts are cached at `$BAINARY_CACHE_DIR` (defaults to `~/.cache/bainary/`) keyed by the binary's sha256. The layout is sharded (`<root>/<sha[0:2]>/<sha[2:4]>/<sha>.json`) to avoid huge flat directories. Cache entries are invalidated automatically when the Ghidra version changes. Pass `--no-cache` (CLI) or `use_cache=False` (library) to bypass. The cache is LRU-evicted at 200 entries by default.
+**Lift cache**: artifacts are cached at `$BAINARY_CACHE_DIR` (defaults to `~/.cache/bainary/`) keyed by the binary's sha256. The layout is sharded (`<root>/<sha[0:2]>/<sha[2:4]>/<sha>.json`). Cache entries are invalidated automatically when the Ghidra version changes. LRU-evicted at 200 entries by default.
+
+**Refinement cache**: refined pseudo-C is cached at `~/.cache/bainary/refine/` keyed by `sha256(pseudo_c + model + prompt_version)`. Avoids re-spending LLM tokens on the same function + model.
 
 ```bash
-export BAINARY_CACHE_DIR=/tmp/bainary-cache  # override cache location
+export BAINARY_CACHE_DIR=/tmp/bainary-cache  # override lift cache location
 ```
+
+## Documentation
+
+Full documentation is in `docs/wiki/`:
+
+- [Home](docs/wiki/Home.md) — index of all pages
+- [Architecture](docs/wiki/Architecture.md) — system design
+- [Subsystem A](docs/wiki/Subsystem-A-Lift.md) — lift
+- [Subsystem B](docs/wiki/Subsystem-B-Graph.md) — graph
+- [Subsystem D](docs/wiki/Subsystem-D-Refine.md) — refine
+- [CLI reference](docs/wiki/CLI-Reference.md)
+- [Development guide](docs/wiki/Development-Guide.md)
+- [Examples](docs/wiki/Examples.md)
 
 ## License
 
