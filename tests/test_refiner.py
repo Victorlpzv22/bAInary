@@ -12,6 +12,7 @@ from bainary.refine import (
     RefineError,
     create_client,
 )
+from bainary.refine.cache import RefinementCache
 from bainary.refine.errors import RefineError as RefineErrorDirect
 from bainary.refine.prompts import PROMPT_VERSION, build_prompt
 
@@ -110,3 +111,43 @@ def test_prompt_has_refinement_instructions():
     assert "rename" in prompt.lower()
     assert "comment" in prompt.lower()
     assert "code block" in prompt.lower()
+
+
+def test_cache_miss_returns_none(tmp_path):
+    cache = RefinementCache(tmp_path)
+    assert cache.lookup("nonexistent_key") is None
+
+
+def test_cache_store_and_lookup(tmp_path):
+    cache = RefinementCache(tmp_path)
+    cache.store("key123", "void _fini(void) { return; }")
+    hit = cache.lookup("key123")
+    assert hit is not None
+    assert "void _fini" in hit
+
+
+def test_cache_invalidation_on_model_change(tmp_path):
+    cache_a = RefinementCache(tmp_path, model="kimi-k2.7-code")
+    cache_a.store("key456", "refined code here")
+    assert cache_a.lookup("key456") is not None
+
+    cache_b = RefinementCache(tmp_path, model="glm-5.2")
+    assert cache_b.lookup("key456") is None
+
+
+def test_cache_count(tmp_path):
+    cache = RefinementCache(tmp_path)
+    assert cache.count() == 0
+    cache.store("a", "code a")
+    cache.store("b", "code b")
+    assert cache.count() == 2
+
+
+def test_cache_clear(tmp_path):
+    cache = RefinementCache(tmp_path)
+    cache.store("a", "code a")
+    cache.store("b", "code b")
+    cache.clear()
+    assert cache.lookup("a") is None
+    assert cache.lookup("b") is None
+    assert cache.count() == 0
