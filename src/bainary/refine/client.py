@@ -63,6 +63,12 @@ class MockClient(LLMClient):
     ) -> str:
         self._call_count += 1
         self._calls.append(prompt)
+        # Match on "Function: `name`" to avoid false positives from
+        # callers/callees that share names with the function being refined.
+        for key, response in self._responses.items():
+            if f"Function: `{key}`" in prompt:
+                return response
+        # Fallback: loose substring match (for backward compat)
         for key, response in self._responses.items():
             if key in prompt:
                 return response

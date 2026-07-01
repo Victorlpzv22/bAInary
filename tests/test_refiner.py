@@ -4,12 +4,15 @@ from __future__ import annotations
 
 import pytest
 
+from bainary.graph import CallGraph
+from bainary.lift.artifact import BinaryArtifact
 from bainary.refine import (
     AnthropicClient,
     LLMClient,
     MockClient,
     OpenAICompatibleClient,
     RefineError,
+    Refiner,
     create_client,
 )
 from bainary.refine.cache import RefinementCache
@@ -151,3 +154,194 @@ def test_cache_clear(tmp_path):
     assert cache.lookup("a") is None
     assert cache.lookup("b") is None
     assert cache.count() == 0
+
+
+# --- Refiner tests ---
+
+
+def _fn_dict(
+    address: str,
+    name: str,
+    callees: list[dict] | None = None,
+    is_thunk: bool = False,
+    pseudocode: str | None = "// stub",
+    size_bytes: int = 16,
+    pseudocode_error: str | None = None,
+) -> dict:
+    return {
+        "address": address,
+        "name": name,
+        "signature": f"int {name}(void)",
+        "calling_convention": "cdecl",
+        "size_bytes": size_bytes,
+        "is_thunk": is_thunk,
+        "basic_blocks": [],
+        "cfg": {"nodes": [], "edges": []},
+        "callers": [],
+        "callees": callees or [],
+        "assembly": "ret",
+        "pseudocode": pseudocode,
+        "pseudocode_error": pseudocode_error,
+        "decompiler": "ghidra",
+        "stack_frame": {"size": 0, "locals": []},
+    }
+
+
+def _make_artifact(functions: list[dict]) -> BinaryArtifact:
+    return BinaryArtifact.from_dict(
+        {
+            "schema_version": "1.0",
+            "binary": {
+                "path": "/tmp/test.elf",
+                "sha256": "ab" * 32,
+                "format": "ELF",
+                "arch": "x64",
+                "endianness": "little",
+                "entry_point": "0x401000",
+                "base_address": "0x400000",
+                "decompiler_version": "test",
+            },
+            "sections": [],
+            "imports": [],
+            "exports": [],
+            "strings": [],
+            "functions": functions,
+        }
+    )
+
+
+def _test_artifact() -> BinaryArtifact:
+    return _make_artifact(
+        [
+            _fn_dict(
+                "0x1000",
+                "main",
+                callees=[{"address": "0x2000", "name": "add", "is_external": False}],
+                pseudocode="int main() { int iVar1 = add(1); return iVar1; }",
+            ),
+            _fn_dict("0x2000", "add", pseudocode="int add(int a) { return a + 1; }"),
+            _fn_dict("0x3000", "_fini", is_thunk=True, pseudocode="void _fini(void) { return; }"),
+            _fn_dict("0x4000", "no_pseudo", pseudocode=None, pseudocode_error="decompile failed"),
+        ]
+    )
+
+
+def test_refine_basic(tmp_path):
+    mock = MockClient(
+        responses={
+            "main": "int main() { int result = add(1); return result; }",
+            "add": "int add(int a) { return a + 1; }",
+        }
+    )
+    refiner = Refiner(client=mock, cache=RefinementCache(tmp_path, model="mock"))
+    artifact = _test_artifact()
+    refined = refiner.refine(artifact)
+    main_fn = next(f for f in refined.functions if f.name == "main")
+    assert "result" in main_fn.pseudocode
+    assert "iVar1" not in main_fn.pseudocode
+
+
+def test_refine_preserves_original(tmp_path):
+    mock = MockClient(responses={"main": "refined main", "add": "refined add"})
+    refiner = Refiner(client=mock, cache=RefinementCache(tmp_path, model="mock"))
+    original = _test_artifact()
+    original_main = original.functions[0].pseudocode
+    refiner.refine(original)
+    assert original.functions[0].pseudocode == original_main
+
+
+def test_refine_skip_thunks(tmp_path):
+    mock = MockClient(responses={"_fini": "should not appear"})
+    refiner = Refiner(client=mock, cache=RefinementCache(tmp_path, model="mock"), skip_thunks=True)
+    artifact = _test_artifact()
+    refined = refiner.refine(artifact)
+    fini = next(f for f in refined.functions if f.name == "_fini")
+    assert fini.pseudocode == "void _fini(void) { return; }"
+
+
+def test_refine_skip_no_pseudocode(tmp_path):
+    mock = MockClient(responses={"no_pseudo": "should not appear"})
+    refiner = Refiner(client=mock, cache=RefinementCache(tmp_path, model="mock"))
+    artifact = _test_artifact()
+    refined = refiner.refine(artifact)
+    no_pseudo = next(f for f in refined.functions if f.name == "no_pseudo")
+    assert no_pseudo.pseudocode is None
+
+
+def test_refine_min_size(tmp_path):
+    mock = MockClient(responses={"add": "refined add"})
+    refiner = Refiner(client=mock, cache=RefinementCache(tmp_path, model="mock"), min_size=20)
+    artifact = _test_artifact()
+    refined = refiner.refine(artifact)
+    add_fn = next(f for f in refined.functions if f.name == "add")
+    assert add_fn.pseudocode == "int add(int a) { return a + 1; }"
+
+
+def test_refine_with_callgraph(tmp_path):
+    mock = MockClient(
+        responses={
+            "main": "refined main",
+            "add": "refined add",
+        }
+    )
+    refiner = Refiner(client=mock, cache=RefinementCache(tmp_path, model="mock"))
+    artifact = _test_artifact()
+    cg = CallGraph.from_artifact(artifact)
+    refiner.refine(artifact, cg)
+    main_prompt = next(p for p in mock.calls if "main" in p and "Refine" in p)
+    assert "add" in main_prompt
+
+
+def test_refine_without_callgraph(tmp_path):
+    mock = MockClient(
+        responses={
+            "main": "refined main",
+            "add": "refined add",
+        }
+    )
+    refiner = Refiner(client=mock, cache=RefinementCache(tmp_path, model="mock"))
+    artifact = _test_artifact()
+    refiner.refine(artifact)
+    main_prompt = next(p for p in mock.calls if "main" in p and "Refine" in p)
+    assert "unknown" in main_prompt.lower()
+
+
+def test_refine_llm_failure(tmp_path):
+    """If the LLM fails for one function, others still get refined."""
+    mock = MockClient(responses={"add": "refined add"})
+    refiner = Refiner(client=mock, cache=RefinementCache(tmp_path, model="mock"))
+    artifact = _test_artifact()
+    refined = refiner.refine(artifact)
+    add_fn = next(f for f in refined.functions if f.name == "add")
+    assert add_fn.pseudocode == "refined add"
+
+
+def test_refine_cache_hit(tmp_path):
+    mock = MockClient(
+        responses={
+            "main": "refined main",
+            "add": "refined add",
+        }
+    )
+    refiner = Refiner(client=mock, cache=RefinementCache(tmp_path, model="mock"))
+    artifact = _test_artifact()
+    refiner.refine(artifact)
+    first_count = mock.call_count
+    refiner.refine(artifact)
+    assert mock.call_count == first_count
+
+
+def test_refine_cache_hit_with_explicit_cache(tmp_path):
+    mock = MockClient(
+        responses={
+            "main": "refined main",
+            "add": "refined add",
+        }
+    )
+    cache = RefinementCache(tmp_path, model="mock")
+    refiner = Refiner(client=mock, cache=cache)
+    artifact = _test_artifact()
+    refiner.refine(artifact)
+    first_count = mock.call_count
+    refiner.refine(artifact)
+    assert mock.call_count == first_count
