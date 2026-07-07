@@ -128,12 +128,17 @@ pytest tests/test_rag.py -v
 
 ## Out of scope (for C MVP)
 
-- **C↔D integration** (inject retrieved context into the refine prompt) — post-MVP. The `retrieve_context()` API is the integration point.
-- Metadata filtering (e.g. "only functions in libc").
-- Hybrid lexical + vector search.
-- CLI (library only, same as D).
-- Batch / parallel embedding API calls.
-- `Index.add_artifact` is sequential.
+The full post-MVP backlog lives in **[Post-MVP Roadmap](Post-MVP-Roadmap)** (consolidated for the whole project). Highlights for C:
+
+- **C↔D integration** — inject retrieved context into the refine prompt. The `retrieve_context()` API is the integration point.
+- **Additional `EmbeddingClient` providers** (Cohere, Voyage, local sentence-transformers).
+- **Additional `VectorStore` backends** (ChromaDB, LanceDB, sqlite-vec, FAISS, hnswlib).
+- **Search features** — metadata filtering ("only libc", "only binary X"), hybrid lexical + vector, per-binary sub-corpus queries, MMR diversity.
+- **Corpus management** — `gc_orphans` for address shifting, corpus diffing, export/import.
+- **Operational** — CLI (`bainary-rag`), token/cost tracking, statistics.
+- **Performance** — batch / parallel embedding API calls, ANN indexes.
+
+When any of these lands, update both the roadmap (move from `- [ ]` to `- [x]`) and this page if the section changes.
 
 ## Known issues
 

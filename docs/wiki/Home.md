@@ -18,6 +18,7 @@ AI-assisted reverse engineering of compiled binaries. Lift PE/ELF/Mach-O binarie
 - [CLI reference](CLI-Reference)
 - [Usage examples](Examples)
 - [Development guide](Development-Guide)
+- [Post-MVP roadmap](Post-MVP-Roadmap)
 - [README](/README.md)
 
 ## Stats
