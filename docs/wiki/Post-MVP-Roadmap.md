@@ -16,6 +16,7 @@ The MVP (semantic function index, natural-language search, cross-binary corpus) 
 - [ ] **Cohere, Voyage AI, local sentence-transformers** — additional `EmbeddingClient` subclasses.
 - [ ] **Batch / parallel embedding API calls** — current is sequential; many APIs support true batching for cost and latency.
 - [ ] **Embedding model rotation** — switch model in-place without forcing a full re-index; use a per-model `VectorStore` namespace or keyed collections.
+- [ ] **Investigate embedding availability on OpenCode Go** — Kimi K2.7 (and likely other chat models on `/v1/embeddings`) returns 404 from `https://opencode.ai/zen/go/v1/embeddings`. Confirmed 2026-07-07 with the end-to-end test in `scripts/test_rag_kimi.py`. Two paths: (a) document that OpenCode Go is chat-only and steer users to `text-embedding-3-small` direct via OpenAI, (b) investigate if OpenCode Go has a separate embeddings route.
 
 ### Vector store backends
 
