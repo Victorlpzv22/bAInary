@@ -15,7 +15,7 @@ The MVP (cross-binary function index, lexical similarity, search, retrieve_conte
 
 The `TextualVectorizer` ABC is designed for drop-in subclasses. New implementations may improve ranking quality without changing consumers.
 
-- [ ] **TF-IDF vectorizer** — learned vocabulary, sparse vectors, better exact-match recall.
+- [x] **TF-IDF vectorizer** — learned vocabulary, sparse vectors, better exact-match recall. (shipped 2026-07-07 as `TfidfTextVectorizer`)
 - [ ] **Character n-grams** — robust to identifier renaming (`if (x>0)` vs `if (positive(x))`).
 - [ ] **n-gram with stemming** — collapse `running` / `runs` / `ran` to a common token.
 - [ ] **Sub-word tokenization** (BPE) — better OOV handling for unusual identifiers.
@@ -33,25 +33,25 @@ The `VectorStore` ABC is designed for drop-in subclasses. Each of these becomes 
 
 ### Search features
 
-- [ ] **Metadata filtering** — "only libc", "only binary X", name LIKE, address range.
+- [x] **Metadata filtering** — "only libc", "only binary X", name LIKE, address range. (shipped 2026-07-07 as `Index.search(binary_sha=..., name_regex=..., address_range=...)`)
 - [ ] **Hybrid lexical + lexical** — combine the `TextualVectorizer` cosine score with a BM25 over function names/signatures.
 - [ ] **Per-binary sub-corpus queries** — `idx.search_in(binary_sha, query, k=...)` to scope a search to one binary.
 - [ ] **Result diversity (MMR)** — replace pure top-k with Maximal Marginal Relevance so neighbors aren't near-duplicates.
 
 ### Corpus management
 
-- [ ] **`gc_orphans(binary_sha256, current_artifact)`** — sweep stale `VectorRecord`s when re-lifting with a different Ghidra version shifts function addresses. Currently the orphan would just linger.
+- [x] **`gc_orphans(binary_sha256, current_artifact)`** — sweep stale `VectorRecord`s when re-lifting with a different Ghidra version shifts function addresses. (shipped 2026-07-07 as `Index.gc_orphans(artifact)`)
 - [ ] **Corpus diffing** — "what's new in this build vs the previous build of the same binary?".
 - [ ] **Export / import corpus** to a portable format (parquet + json metadata) for sharing across teams/machines.
 
 ### Operational
 
-- [ ] **CLI** — `bainary-rag index path/to/bin/`, `bainary-rag search "..."`, `bainary-rag stats`. Library-only today.
+- [x] **CLI** — `bainary-rag index path/to/bin/`, `bainary-rag search "..."`, `bainary-rag stats`. (shipped 2026-07-07 as `bainary-rag` entry point)
 - [ ] **Vector store statistics** — corpus size, dim distribution, density, age of entries.
 
 ### Known issues (carried over)
 
-- **Address shifting on re-lift** — see `gc_orphans` above.
+- **Address shifting on re-lift** — resolved by `gc_orphans`.
 - **Lexical, not semantic** — the hashing trick doesn't recognize synonyms or paraphrases. Acceptable given the "no embedding model" decision; documented in `Subsystem-C-RAG.md`.
 
 ---

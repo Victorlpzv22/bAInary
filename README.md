@@ -162,7 +162,7 @@ pytest
 pytest tests/test_snapshot.py --update-snapshots -m slow
 ```
 
-150 tests total: 143 pass in the fast lane, 7 more (integration + snapshot) run when Ghidra is available.
+157 tests total: 150 pass in the fast lane, 7 more (integration + snapshot) run when Ghidra is available.
 
 ## Cache
 

@@ -22,7 +22,8 @@ Cross-binary textual-similarity index of functions. Given one or many `BinaryArt
 
 - **`TextualVectorizer`** — ABC. `vectorize(texts) -> list[list[float]]`. Implementations:
   - `HashingTextVectorizer` (default) — deterministic, offline, no state, no model. Tokens are C-like identifiers + numbers + operators; n-grams of size 1 and 2 are hashed into a fixed-dim vector, weighted with sub-linear TF and L2-normalized. Same text always yields the same vector; similar texts (sharing many n-grams) yield similar vectors.
-  - *Future:* TF-IDF, character n-grams, n-gram with stemming, or any other text→vector transform — drop-in subclass of `TextualVectorizer`.
+  - `TfidfTextVectorizer` — stateful TF-IDF. Higher recall for exact matches and meaningful scoring of rare tokens. Two-phase: `fit(corpus)` builds the vocabulary + IDF; `vectorize(texts)` returns TF·IDF, L2-normalized. `save(path)` / `load(path)` round-trips the state as JSON. Drop-in subclass of `TextualVectorizer`.
+  - *Future:* character n-grams, n-gram with stemming, or any other text→vector transform — drop-in subclass of `TextualVectorizer`.
 - **`VectorStore`** — ABC. Stores `VectorRecord(id, vector, function_dict, binary_sha256, name, address, source, text_hash)`. Implementations:
   - `InMemoryStore` — dict-backed; used in tests.
   - `NumpyFileStore` — persistent numpy + JSON at `~/.cache/bainary/rag/`. Recovers gracefully from corrupt files.
@@ -47,7 +48,12 @@ hits = idx.search("parse HTTP request header", k=5)
 for h in hits:
     print(h.score, h.binary_sha256, h.function.name, h.source)
 
-# Similarity to a known function (itself is the top hit if indexed)
+# Optional metadata filters (applied before scoring)
+hits = idx.search("parse", k=5, binary_sha=artifact.binary.sha256)
+hits = idx.search("parse", k=5, name_regex=r"^parse_")
+hits = idx.search("parse", k=5, address_range=("0x10000", "0x1ffff"))
+
+# Find functions similar to a given one (itself is the top hit if indexed)
 neighbors = idx.search_similar(artifact.functions[0], k=5)
 
 # Structured context for LLM prompts (future integration with D)
@@ -56,7 +62,24 @@ ctx = idx.retrieve_context(artifact.functions[0], k=5)
 
 # Maintenance
 removed = idx.remove_artifact(artifact.binary.sha256)
+orphans_removed = idx.gc_orphans(artifact)  # after re-lifting the same binary
 print(f"{len(idx)} functions in the corpus")
+```
+
+## Command-line interface
+
+```bash
+# Lift a binary and add it to the corpus
+bainary-rag index path/to/binary.elf --store-root ./store
+
+# Or skip the lift and ingest an already-lifted artifact
+bainary-rag index --from-artifact ./artifact.json --store-root ./store
+
+# Search the corpus
+bainary-rag search "parse HTTP request header" -k 5
+
+# Print corpus statistics
+bainary-rag stats
 ```
 
 ## Cache and persistence
@@ -91,7 +114,7 @@ Function: `main`  (sig: int main(int argc, char ** argv))
 
 | Component | Current | Future |
 |---|---|---|
-| Vectorizer | HashingTextVectorizer (n-gram hashing) | TF-IDF, character n-grams, n-gram with stemming |
+| Vectorizer | HashingTextVectorizer (n-gram hashing), TfidfTextVectorizer (stateful) | character n-grams, n-gram with stemming, BPE |
 | Vector store | InMemory, NumpyFileStore (numpy+JSON) | ChromaDB, LanceDB, sqlite-vec, FAISS, hnswlib |
 
 Adding a new backend means one new class implementing the `TextualVectorizer` or `VectorStore` ABC and (for vectorizer) one line in `create_textual_vectorizer`. Consumers (`Index`) don't change.
@@ -120,16 +143,15 @@ pytest tests/test_rag.py -v
 The full post-MVP backlog lives in **[Post-MVP Roadmap](Post-MVP-Roadmap)**. Highlights for C:
 
 - **C↔D integration** — inject retrieved context into the refine prompt.
-- **Additional `TextualVectorizer` implementations** (TF-IDF, character n-grams, stemming).
+- **Additional `TextualVectorizer` implementations** (character n-grams, n-gram with stemming, BPE).
 - **Additional `VectorStore` backends** (ChromaDB, LanceDB, sqlite-vec, FAISS, hnswlib).
-- **Search features** — metadata filtering, hybrid lexical+lexical, per-binary sub-corpus queries, MMR diversity.
-- **Corpus management** — `gc_orphans`, corpus diffing, export/import.
-- **Operational** — CLI, statistics.
+- **Search features** — hybrid lexical+lexical, per-binary sub-corpus queries, MMR diversity.
+- **Corpus management** — corpus diffing, export/import.
+- **Operational** — richer statistics (dim distribution, density, age).
 - **Performance** — batch / parallel vectorization, ANN indexes.
 
 When any of these lands, update both the roadmap (move from `- [ ]` to `- [x]`) and this page if the section changes.
 
 ## Known issues
 
-- **Address shifting on re-lift**: if re-lifting with a different Ghidra version shifts a function's address, the old `VectorRecord` becomes an orphan (its `id` no longer matches). Future: `gc_orphans(binary_sha256, current_artifact)` to sweep stale ids. Post-MVP.
 - **No semantic similarity**: the hashing trick is lexical. Two functions that do the same thing with very different tokens (e.g. `if (x>0)` vs `if (positive(x))`) will not rank close. A real semantic model would help here, but introducing it would contradict the "no embedding model" decision. Post-MVP if requirements change.

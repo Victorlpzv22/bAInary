@@ -94,10 +94,11 @@ src/bainary/
 │   └── errors.py      #    GraphError
 │
 ├── rag/               # Subsystem C
-│   ├── index.py       #    Index class (orchestrator)
-│   ├── vectorize.py   #    TextualVectorizer ABC + HashingTextVectorizer
+│   ├── index.py       #    Index class (orchestrator) + gc_orphans, search filters
+│   ├── vectorize.py   #    TextualVectorizer ABC + HashingTextVectorizer + TfidfTextVectorizer
 │   ├── store.py       #    VectorStore ABC + InMemoryStore / NumpyFileStore
 │   ├── text.py        #    build_text() (pseudocode first, ASM fallback)
+│   ├── cli.py         #    bainary-rag entry point (index / search / stats)
 │   ├── __init__.py    #    re-exports
 │   └── errors.py      #    RagError
 │
