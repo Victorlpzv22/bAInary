@@ -345,3 +345,97 @@ def test_refine_cache_hit_with_explicit_cache(tmp_path):
     first_count = mock.call_count
     refiner.refine(artifact)
     assert mock.call_count == first_count
+
+
+# --- refine_one (single-function refinement, used by GUI subsystem E) ---
+
+
+def test_refine_one_single_function(tmp_path):
+    """refine_one refines one function and returns its code (no artifact mutation)."""
+    mock = MockClient(responses={"main": "int main() { return result; }"})
+    refiner = Refiner(client=mock, cache=RefinementCache(tmp_path, model="mock"))
+    artifact = _test_artifact()
+    main = artifact.functions[0]
+    refined_code = refiner.refine_one(main, CallGraph.from_artifact(artifact))
+    assert refined_code == "int main() { return result; }"
+    # original artifact untouched
+    assert "result" not in (artifact.functions[0].pseudocode or "")
+
+
+def test_refine_one_skip_when_filtered(tmp_path):
+    """refine_one returns None when the function is filtered out (skip_thunks)."""
+    mock = MockClient(responses={"_fini": "should not appear"})
+    refiner = Refiner(client=mock, cache=RefinementCache(tmp_path, model="mock"), skip_thunks=True)
+    artifact = _test_artifact()
+    fini = next(f for f in artifact.functions if f.name == "_fini")
+    assert refiner.refine_one(fini) is None
+    assert mock.call_count == 0
+
+
+def test_refine_one_returns_none_for_no_pseudocode(tmp_path):
+    """refine_one returns None when the function has no pseudocode."""
+    mock = MockClient(responses={"no_pseudo": "should not appear"})
+    refiner = Refiner(client=mock, cache=RefinementCache(tmp_path, model="mock"))
+    artifact = _test_artifact()
+    no_pseudo = next(f for f in artifact.functions if f.name == "no_pseudo")
+    assert refiner.refine_one(no_pseudo) is None
+    assert mock.call_count == 0
+
+
+def test_refine_one_respects_min_size(tmp_path):
+    """refine_one returns None when size_bytes < min_size."""
+    mock = MockClient(responses={"add": "should not appear"})
+    refiner = Refiner(client=mock, cache=RefinementCache(tmp_path, model="mock"), min_size=100)
+    artifact = _test_artifact()
+    add = next(f for f in artifact.functions if f.name == "add")
+    assert refiner.refine_one(add) is None
+    assert mock.call_count == 0
+
+
+def test_refine_one_uses_cache(tmp_path):
+    """refine_one hits cache on second call without re-invoking the LLM."""
+    mock = MockClient(responses={"main": "refined main"})
+    refiner = Refiner(client=mock, cache=RefinementCache(tmp_path, model="mock"))
+    artifact = _test_artifact()
+    refiner.refine_one(artifact.functions[0])
+    first_count = mock.call_count
+    refiner.refine_one(artifact.functions[0])
+    assert mock.call_count == first_count
+
+
+def test_refine_one_without_callgraph(tmp_path):
+    """refine_one works without a call graph (callers/callees unknown)."""
+    mock = MockClient(responses={"main": "refined main no cg"})
+    refiner = Refiner(client=mock, cache=RefinementCache(tmp_path, model="mock"))
+    artifact = _test_artifact()
+    refined_code = refiner.refine_one(artifact.functions[0])
+    assert refined_code == "refined main no cg"
+    assert "unknown" in mock.calls[0].lower()
+
+
+def test_refine_one_llm_error_returns_none(tmp_path):
+    """refine_one returns None when the LLM raises (function preserved elsewhere)."""
+
+    class FailClient(MockClient):
+        def complete(self, *a, **k):
+            raise RefineError("boom")
+
+    refiner = Refiner(
+        client=FailClient(responses={}), cache=RefinementCache(tmp_path, model="mock")
+    )
+    artifact = _test_artifact()
+    assert refiner.refine_one(artifact.functions[0]) is None
+
+
+def test_refine_one_empty_response_returns_none(tmp_path):
+    """refine_one returns None when the LLM returns an empty string."""
+
+    class EmptyClient(MockClient):
+        def complete(self, *a, **k):
+            return ""
+
+    refiner = Refiner(
+        client=EmptyClient(responses={}), cache=RefinementCache(tmp_path, model="mock")
+    )
+    artifact = _test_artifact()
+    assert refiner.refine_one(artifact.functions[0]) is None

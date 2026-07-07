@@ -9,7 +9,7 @@ import logging
 import re
 
 from bainary.graph import CallGraph
-from bainary.lift.artifact import BinaryArtifact
+from bainary.lift.artifact import BinaryArtifact, Function
 from bainary.refine.cache import RefinementCache
 from bainary.refine.client import LLMClient
 from bainary.refine.errors import RefineError
@@ -88,53 +88,102 @@ class Refiner:
         refined = copy.deepcopy(artifact)
 
         for fn in refined.functions:
-            # Apply filters
-            if skip_no_pseudocode and not fn.pseudocode:
-                continue
-            if skip_thunks and fn.is_thunk:
-                continue
-            if min_size > 0 and fn.size_bytes < min_size:
-                continue
-            if not fn.pseudocode:
-                continue
-
-            # Get call graph context
-            caller_names: list[str] = []
-            callee_names: list[str] = []
-            if cg is not None:
-                try:
-                    caller_names = sorted(cg.callers_of(fn.name))
-                except Exception:
-                    pass
-                try:
-                    callee_names = sorted(cg.callees_of(fn.name))
-                except Exception:
-                    pass
-
-            # Check cache
-            key = _cache_key(fn.pseudocode, self._client.model_name)
-            cached = self._cache.lookup(key)
-            if cached is not None:
-                fn.pseudocode = cached
-                continue
-
-            # Build prompt and call LLM
-            prompt = build_prompt(
-                function_name=fn.name,
-                pseudo_c=fn.pseudocode,
-                caller_names=caller_names or None,
-                callee_names=callee_names or None,
+            refined_code, error = self._refine_one(
+                fn, cg, min_size, skip_thunks, skip_no_pseudocode
             )
-
-            try:
-                raw_response = self._client.complete(prompt)
-                refined_code = _strip_markdown_fences(raw_response)
-                if not refined_code:
-                    fn.pseudocode_error = "LLM returned empty response"
-                    continue
+            if refined_code is not None:
                 fn.pseudocode = refined_code
-                self._cache.store(key, refined_code)
-            except RefineError as e:
-                fn.pseudocode_error = str(e)
-
+            elif error is not None:
+                # LLM call failed or returned empty; record the reason on the
+                # deep-copy's function (the original artifact is untouched).
+                fn.pseudocode_error = error
         return refined
+
+    def refine_one(
+        self,
+        fn: Function,
+        cg: CallGraph | None = None,
+        *,
+        min_size: int | None = None,
+        skip_thunks: bool | None = None,
+        skip_no_pseudocode: bool | None = None,
+    ) -> str | None:
+        """Refine a single function's pseudo-C and return the refined code.
+
+        Returns the refined code string, or ``None`` when the function is
+        filtered out (skip_thunks, skip_no_pseudocode, min_size), has no
+        pseudocode, the LLM call fails, or the LLM returns an empty response.
+
+        Uses the same cache, filters, and prompt logic as :meth:`refine`.
+        The original ``fn`` is never modified.
+        """
+        refined_code, _error = self._refine_one(
+            fn,
+            cg,
+            min_size if min_size is not None else self._min_size,
+            skip_thunks if skip_thunks is not None else self._skip_thunks,
+            skip_no_pseudocode if skip_no_pseudocode is not None else self._skip_no_pseudocode,
+        )
+        return refined_code
+
+    def _refine_one(
+        self,
+        fn: Function,
+        cg: CallGraph | None,
+        min_size: int,
+        skip_thunks: bool,
+        skip_no_pseudocode: bool,
+    ) -> tuple[str | None, str | None]:
+        """Internal single-function refinement.
+
+        Returns ``(refined_code, error)`` where exactly one is non-None when
+        the LLM was invoked, and both are ``None`` when the function was
+        filtered out (no LLM call attempted).
+
+        Contract: ``fn`` is never mutated by this helper. The caller
+        (:meth:`refine` or :meth:`refine_one`) owns any mutation of fn.
+        """
+        if not fn.pseudocode:
+            return None, None
+        # skip_no_pseudocode is already covered by the early-return above
+        # (we never reach here when there's no pseudocode), but kept for
+        # symmetry with the original filter sequence.
+        _ = skip_no_pseudocode
+        if skip_thunks and fn.is_thunk:
+            return None, None
+        if min_size > 0 and fn.size_bytes < min_size:
+            return None, None
+
+        caller_names: list[str] = []
+        callee_names: list[str] = []
+        if cg is not None:
+            try:
+                caller_names = sorted(cg.callers_of(fn.name))
+            except Exception:
+                pass
+            try:
+                callee_names = sorted(cg.callees_of(fn.name))
+            except Exception:
+                pass
+
+        key = _cache_key(fn.pseudocode, self._client.model_name)
+        cached = self._cache.lookup(key)
+        if cached is not None:
+            return cached, None
+
+        prompt = build_prompt(
+            function_name=fn.name,
+            pseudo_c=fn.pseudocode,
+            caller_names=caller_names or None,
+            callee_names=callee_names or None,
+        )
+
+        try:
+            raw_response = self._client.complete(prompt)
+            refined_code = _strip_markdown_fences(raw_response)
+            if not refined_code:
+                return None, "LLM returned empty response"
+            self._cache.store(key, refined_code)
+            return refined_code, None
+        except RefineError as e:
+            return None, str(e)
