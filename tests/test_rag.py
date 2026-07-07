@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from bainary.lift.artifact import Function
+from bainary.lift.artifact import BinaryArtifact, Function  # noqa: F401
 from bainary.lift.errors import BainaryError
 from bainary.rag import RagError
 from bainary.rag.client import (
@@ -14,6 +14,7 @@ from bainary.rag.client import (
     create_embedding_client,
 )
 from bainary.rag.errors import RagError as RagErrorDirect
+from bainary.rag.store import InMemoryStore, SearchHit, VectorRecord
 from bainary.rag.text import TEXT_VERSION, build_text
 
 
@@ -129,3 +130,103 @@ def test_create_client_openai():
 def test_create_client_unknown_provider():
     with pytest.raises(RagError, match="unknown provider"):
         create_embedding_client(provider="cohere")
+
+
+# --- Vector store tests ---
+
+
+def _make_record(
+    id: str = "r1",
+    vector: list[float] | None = None,
+    binary_sha256: str = "ab" * 32,
+    name: str = "main",
+    address: str = "0x1000",
+    source: str = "/tmp/test.elf",
+    text_hash: str = "deadbeef",
+) -> VectorRecord:
+    fn = Function(
+        address=address,
+        name=name,
+        signature=f"int {name}(void)",
+        calling_convention="cdecl",
+        size_bytes=16,
+        assembly="ret",
+        pseudocode="int x() { return 0; }",
+    )
+    return VectorRecord(
+        id=id,
+        vector=vector or [1.0, 0.0, 0.0],
+        function=fn.to_dict(),
+        binary_sha256=binary_sha256,
+        name=name,
+        address=address,
+        source=source,
+        text_hash=text_hash,
+    )
+
+
+def test_inmemory_upsert_and_count():
+    store = InMemoryStore(dim=3)
+    store.upsert([_make_record(id="r1")])
+    assert store.count() == 1
+    store.upsert([_make_record(id="r2", vector=[0.0, 1.0, 0.0])])
+    assert store.count() == 2
+
+
+def test_inmemory_upsert_same_id_overwrites():
+    store = InMemoryStore(dim=3)
+    r = _make_record(id="r1", vector=[1.0, 0.0, 0.0])
+    store.upsert([r])
+    r2 = _make_record(id="r1", vector=[0.0, 0.0, 1.0], text_hash="new")
+    store.upsert([r2])
+    assert store.count() == 1
+
+
+def test_inmemory_search_top_k():
+    store = InMemoryStore(dim=3)
+    store.upsert([_make_record(id="r1", vector=[1.0, 0.0, 0.0])])
+    store.upsert([_make_record(id="r2", vector=[0.0, 1.0, 0.0])])
+    store.upsert([_make_record(id="r3", vector=[0.0, 0.0, 1.0])])
+    hits = store.search([1.0, 0.0, 0.0], k=2)
+    assert len(hits) == 2
+    assert hits[0].function.name == "main"
+    assert hits[0].score > 0.99  # cosine with self ≈ 1
+
+
+def test_inmemory_search_empty_returns_empty():
+    store = InMemoryStore(dim=3)
+    assert store.search([1.0, 0.0, 0.0], k=5) == []
+
+
+def test_inmemory_remove_binary():
+    store = InMemoryStore(dim=3)
+    store.upsert([_make_record(id="r1", binary_sha256="ab" * 32)])
+    store.upsert([_make_record(id="r2", binary_sha256="cd" * 32)])
+    removed = store.remove_binary("ab" * 32)
+    assert removed == 1
+    assert store.count() == 1
+
+
+def test_inmemory_remove_binary_none():
+    store = InMemoryStore(dim=3)
+    assert store.remove_binary("ab" * 32) == 0
+
+
+def test_search_hit_fields():
+    hit = SearchHit(
+        function=Function(
+            address="0x1",
+            name="x",
+            signature="void x()",
+            calling_convention="cdecl",
+            size_bytes=1,
+            assembly="ret",
+        ),
+        binary_sha256="ab" * 32,
+        score=0.42,
+        source="/tmp/test.elf",
+    )
+    assert hit.function.name == "x"
+    assert hit.binary_sha256 == "ab" * 32
+    assert hit.score == 0.42
+    assert hit.source == "/tmp/test.elf"
