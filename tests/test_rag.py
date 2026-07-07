@@ -562,3 +562,165 @@ def test_index_search_finds_similar_across_binaries():
     hits = idx.search_similar(fn, k=2)
     assert hits[0].function.name == "parse_http_header"
     assert hits[1].function.name == "parse_https_header"
+
+
+# --- VectorStore: list_by_binary / remove_by_id tests ---
+
+
+def test_inmemory_list_by_binary():
+    store = InMemoryStore(dim=3)
+    store.upsert([_make_record(id="r1", binary_sha256="ab" * 32)])
+    store.upsert([_make_record(id="r2", binary_sha256="ab" * 32, address="0x2000")])
+    store.upsert([_make_record(id="r3", binary_sha256="cd" * 32, address="0x3000")])
+    out = store.list_by_binary("ab" * 32)
+    assert {r.id for r in out} == {"r1", "r2"}
+
+
+def test_inmemory_list_by_binary_empty():
+    store = InMemoryStore(dim=3)
+    assert store.list_by_binary("ab" * 32) == []
+
+
+def test_inmemory_remove_by_id():
+    store = InMemoryStore(dim=3)
+    store.upsert([_make_record(id="r1")])
+    store.upsert([_make_record(id="r2", vector=[0.0, 1.0, 0.0])])
+    assert store.remove_by_id("r1") is True
+    assert store.count() == 1
+    assert store.remove_by_id("r1") is False
+    assert store.remove_by_id("missing") is False
+
+
+def test_numpyfilestore_list_by_binary(tmp_path):
+    store = NumpyFileStore(root=tmp_path, dim=3)
+    store.upsert([_make_record(id="r1", binary_sha256="ab" * 32)])
+    store.upsert([_make_record(id="r2", binary_sha256="ab" * 32, address="0x2000")])
+    store.upsert([_make_record(id="r3", binary_sha256="cd" * 32, address="0x3000")])
+    store.flush()
+    out = store.list_by_binary("ab" * 32)
+    assert {r.id for r in out} == {"r1", "r2"}
+
+
+def test_numpyfilestore_remove_by_id(tmp_path):
+    store = NumpyFileStore(root=tmp_path, dim=3)
+    store.upsert([_make_record(id="r1")])
+    store.upsert([_make_record(id="r2", vector=[0.0, 1.0, 0.0])])
+    store.flush()
+    assert store.remove_by_id("r1") is True
+    store.flush()
+    store2 = NumpyFileStore(root=tmp_path, dim=3)
+    assert store2.count() == 1
+    assert store2.remove_by_id("missing") is False
+
+
+# --- Index: gc_orphans tests ---
+
+
+def test_gc_orphans_no_orphans():
+    vec = HashingTextVectorizer(dim=64)
+    idx = Index(vectorizer=vec, store=InMemoryStore(dim=64))
+    art = _test_artifact_rag()
+    idx.add_artifact(art)
+    assert idx.gc_orphans(art) == 0
+    assert len(idx) == 3
+
+
+def test_gc_orphans_removes_stale_addresses():
+    """Re-lift with shifted addresses: orphans from the old layout get removed."""
+    vec = HashingTextVectorizer(dim=64)
+    idx = Index(vectorizer=vec, store=InMemoryStore(dim=64))
+    art_v1 = _make_artifact_rag(
+        [
+            _fn_dict_rag("0x1000", "a", pseudocode="int a() { return 0; }"),
+            _fn_dict_rag("0x2000", "b", pseudocode="int b() { return 1; }"),
+        ],
+        binary_sha="ee" * 32,
+    )
+    idx.add_artifact(art_v1)
+    assert len(idx) == 2
+
+    art_v2 = _make_artifact_rag(
+        [
+            _fn_dict_rag("0x5000", "a", pseudocode="int a() { return 0; }"),  # shifted
+            _fn_dict_rag("0x6000", "b", pseudocode="int b() { return 1; }"),  # shifted
+        ],
+        binary_sha="ee" * 32,  # same binary
+    )
+    # add_artifact inserts the new ones but leaves the old ids as orphans.
+    idx.add_artifact(art_v2)
+    assert len(idx) == 4  # 2 stale + 2 fresh
+
+    removed = idx.gc_orphans(art_v2)
+    assert removed == 2
+    assert len(idx) == 2
+    # Survivors are the fresh ones.
+    names = {
+        f.name
+        for f in [Function.from_dict(r.function) for r in idx._store.list_by_binary("ee" * 32)]
+    }
+    assert names == {"a", "b"}
+
+
+def test_gc_orphans_idempotent():
+    vec = HashingTextVectorizer(dim=64)
+    idx = Index(vectorizer=vec, store=InMemoryStore(dim=64))
+    art_v1 = _make_artifact_rag(
+        [
+            _fn_dict_rag("0x1000", "a", pseudocode="int a() { return 0; }"),
+            _fn_dict_rag("0x2000", "b", pseudocode="int b() { return 1; }"),
+        ],
+        binary_sha="ee" * 32,
+    )
+    art_v2 = _make_artifact_rag(
+        [
+            _fn_dict_rag("0x5000", "a", pseudocode="int a() { return 0; }"),
+            _fn_dict_rag("0x6000", "b", pseudocode="int b() { return 1; }"),
+        ],
+        binary_sha="ee" * 32,
+    )
+    idx.add_artifact(art_v1)
+    idx.add_artifact(art_v2)
+    assert idx.gc_orphans(art_v2) == 2
+    assert idx.gc_orphans(art_v2) == 0
+
+
+def test_gc_orphans_does_not_touch_other_binaries():
+    vec = HashingTextVectorizer(dim=64)
+    idx = Index(vectorizer=vec, store=InMemoryStore(dim=64))
+    art_a = _make_artifact_rag(
+        [_fn_dict_rag("0x1", "aa", pseudocode="int aa() { return 0; }")],
+        binary_sha="aa" * 32,
+    )
+    art_b_v1 = _make_artifact_rag(
+        [_fn_dict_rag("0x10", "bb", pseudocode="int bb() { return 0; }")],
+        binary_sha="bb" * 32,
+    )
+    art_b_v2 = _make_artifact_rag(
+        [_fn_dict_rag("0x20", "bb", pseudocode="int bb() { return 0; }")],
+        binary_sha="bb" * 32,
+    )
+    idx.add_artifact(art_a)
+    idx.add_artifact(art_b_v1)
+    idx.add_artifact(art_b_v2)
+    assert len(idx) == 3
+    assert idx.gc_orphans(art_b_v2) == 1
+    assert len(idx) == 2
+    # art_a untouched.
+    assert idx._store.get(_record_id_test("aa" * 32, "0x1")) is not None
+
+
+def test_gc_orphans_no_binary_in_corpus():
+    vec = HashingTextVectorizer(dim=64)
+    idx = Index(vectorizer=vec, store=InMemoryStore(dim=64))
+    art = _make_artifact_rag(
+        [_fn_dict_rag("0x1", "x", pseudocode="int x() { return 0; }")],
+        binary_sha="ff" * 32,
+    )
+    # Corpus is empty; gc_orphans should be a no-op returning 0.
+    assert idx.gc_orphans(art) == 0
+
+
+def _record_id_test(binary_sha: str, fn_address: str) -> str:
+    import hashlib
+
+    return hashlib.sha256(f"{binary_sha}:{fn_address}".encode()).hexdigest()

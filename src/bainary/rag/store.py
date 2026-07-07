@@ -92,6 +92,14 @@ class VectorStore(ABC):
         """Remove all records belonging to the given binary. Returns count removed."""
 
     @abstractmethod
+    def list_by_binary(self, binary_sha256: str) -> list[VectorRecord]:
+        """Return all records belonging to the given binary. Order is unspecified."""
+
+    @abstractmethod
+    def remove_by_id(self, id: str) -> bool:
+        """Remove a single record by id. Returns True if removed, False if not present."""
+
+    @abstractmethod
     def count(self) -> int:
         """Number of stored records."""
 
@@ -159,6 +167,15 @@ class InMemoryStore(VectorStore):
         for rid in to_remove:
             del self._records[rid]
         return len(to_remove)
+
+    def list_by_binary(self, binary_sha256: str) -> list[VectorRecord]:
+        return [r for r in self._records.values() if r.binary_sha256 == binary_sha256]
+
+    def remove_by_id(self, id: str) -> bool:
+        if id in self._records:
+            del self._records[id]
+            return True
+        return False
 
     def count(self) -> int:
         return len(self._records)
@@ -264,6 +281,16 @@ class NumpyFileStore(VectorStore):
         if to_remove:
             self._write()
         return len(to_remove)
+
+    def list_by_binary(self, binary_sha256: str) -> list[VectorRecord]:
+        return [r for r in self._records.values() if r.binary_sha256 == binary_sha256]
+
+    def remove_by_id(self, id: str) -> bool:
+        if id in self._records:
+            del self._records[id]
+            self._write()
+            return True
+        return False
 
     def count(self) -> int:
         return len(self._records)

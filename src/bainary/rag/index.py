@@ -137,6 +137,20 @@ class Index:
         """Remove all functions of a binary from the corpus."""
         return self._store.remove_binary(binary_sha256)
 
+    def gc_orphans(self, artifact: BinaryArtifact) -> int:
+        """Remove VectorRecords of `artifact.binary.sha256` whose address is not
+        present in the current `artifact`. Returns the count removed.
+
+        Idempotent and safe to call after every add_artifact; no-op if no orphans.
+        """
+        valid_ids = {_record_id(artifact.binary.sha256, fn.address) for fn in artifact.functions}
+        removed = 0
+        for r in self._store.list_by_binary(artifact.binary.sha256):
+            if r.id not in valid_ids:
+                if self._store.remove_by_id(r.id):
+                    removed += 1
+        return removed
+
     def flush(self) -> None:
         self._store.flush()
 
