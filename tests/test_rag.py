@@ -967,3 +967,153 @@ def test_cli_index_from_artifact(tmp_path):
     # Confirm by stats.
     result = runner.invoke(app, ["stats", "--store-root", str(store_root)])
     assert "functions: 0" not in result.stdout
+
+
+# --- Metadata filtering tests ---
+
+
+def _make_index_two_binaries() -> tuple[Index, BinaryArtifact, BinaryArtifact]:
+    vec = HashingTextVectorizer(dim=128)
+    idx = Index(vectorizer=vec, store=InMemoryStore(dim=128))
+    art_a = _make_artifact_rag(
+        [
+            _fn_dict_rag("0x1000", "parse_http", pseudocode="int parse_http() { return 0; }"),
+            _fn_dict_rag("0x2000", "cook_egg", pseudocode="int cook_egg() { return 0; }"),
+        ],
+        binary_sha="aa" * 32,
+    )
+    art_b = _make_artifact_rag(
+        [
+            _fn_dict_rag("0x3000", "parse_https", pseudocode="int parse_https() { return 1; }"),
+            _fn_dict_rag("0x4000", "fry_egg", pseudocode="int fry_egg() { return 1; }"),
+        ],
+        binary_sha="bb" * 32,
+    )
+    idx.add_artifact(art_a)
+    idx.add_artifact(art_b)
+    return idx, art_a, art_b
+
+
+def test_search_filter_by_binary():
+    idx, _, art_b = _make_index_two_binaries()
+    hits = idx.search("function", k=10, binary_sha=art_b.binary.sha256)
+    assert len(hits) > 0
+    for h in hits:
+        assert h.binary_sha256 == art_b.binary.sha256
+
+
+def test_search_filter_by_name_regex():
+    idx, _, _ = _make_index_two_binaries()
+    hits = idx.search("function", k=10, name_regex=r"^parse_")
+    names = {h.function.name for h in hits}
+    assert names <= {"parse_http", "parse_https"}
+    assert "cook_egg" not in names
+    assert "fry_egg" not in names
+
+
+def test_search_filter_by_address_range():
+    idx, _, _ = _make_index_two_binaries()
+    hits = idx.search("function", k=10, address_range=("0x1000", "0x2fff"))
+    addrs = {h.function.address for h in hits}
+    assert addrs <= {"0x1000", "0x2000"}
+    assert "0x3000" not in addrs
+    assert "0x4000" not in addrs
+
+
+def test_search_filter_combined():
+    idx, art_a, _ = _make_index_two_binaries()
+    hits = idx.search(
+        "function",
+        k=10,
+        binary_sha=art_a.binary.sha256,
+        name_regex=r"^parse_",
+    )
+    assert len(hits) == 1
+    assert hits[0].function.name == "parse_http"
+
+
+def test_search_filter_no_match():
+    idx, _, _ = _make_index_two_binaries()
+    hits = idx.search("function", k=10, name_regex=r"^this_does_not_match_anything$")
+    assert hits == []
+
+
+def test_search_no_filter_backwards_compat():
+    """Calling search() without any filter kwargs still works."""
+    idx, _, _ = _make_index_two_binaries()
+    hits = idx.search("function", k=2)
+    assert len(hits) == 2
+    assert hits[0].score >= hits[-1].score
+
+
+def test_search_similar_with_filter():
+    idx, art_a, _ = _make_index_two_binaries()
+    fn = art_a.functions[0]  # parse_http
+    hits = idx.search_similar(fn, k=10, binary_sha=art_a.binary.sha256)
+    for h in hits:
+        assert h.binary_sha256 == art_a.binary.sha256
+
+
+def test_inmemory_search_with_filters():
+    """The InMemoryStore itself honors the filter kwargs."""
+    store = InMemoryStore(dim=3)
+    store.upsert(
+        [
+            _make_record(
+                id="r1",
+                vector=[1.0, 0.0, 0.0],
+                binary_sha256="aa" * 32,
+                name="foo",
+                address="0x1000",
+            ),
+            _make_record(
+                id="r2",
+                vector=[0.0, 1.0, 0.0],
+                binary_sha256="bb" * 32,
+                name="bar",
+                address="0x2000",
+            ),
+            _make_record(
+                id="r3",
+                vector=[0.0, 0.0, 1.0],
+                binary_sha256="aa" * 32,
+                name="baz",
+                address="0x3000",
+            ),
+        ]
+    )
+    hits = store.search([1.0, 0.0, 0.0], k=10, binary_sha="aa" * 32)
+    assert {h.function.name for h in hits} == {"foo", "baz"}
+    hits = store.search([1.0, 0.0, 0.0], k=10, name_regex=r"^baz$")
+    assert {h.function.name for h in hits} == {"baz"}
+    hits = store.search([1.0, 0.0, 0.0], k=10, address_range=("0x1500", "0x2fff"))
+    assert {h.function.name for h in hits} == {"bar"}
+
+
+def test_numpyfilestore_search_with_filters(tmp_path):
+    store = NumpyFileStore(root=tmp_path, dim=3)
+    store.upsert(
+        [
+            _make_record(
+                id="r1",
+                vector=[1.0, 0.0, 0.0],
+                binary_sha256="aa" * 32,
+                name="foo",
+                address="0x1000",
+            ),
+            _make_record(
+                id="r2",
+                vector=[0.0, 1.0, 0.0],
+                binary_sha256="bb" * 32,
+                name="bar",
+                address="0x2000",
+            ),
+        ]
+    )
+    store.flush()
+    hits = store.search([1.0, 0.0, 0.0], k=10, binary_sha="aa" * 32)
+    assert {h.function.name for h in hits} == {"foo"}
+    hits = store.search([1.0, 0.0, 0.0], k=10, name_regex=r"^ba")
+    assert {h.function.name for h in hits} == {"bar"}
+    hits = store.search([1.0, 0.0, 0.0], k=10, address_range=("0x1500", "0x2fff"))
+    assert {h.function.name for h in hits} == {"bar"}

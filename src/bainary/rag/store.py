@@ -84,8 +84,22 @@ class VectorStore(ABC):
         """Fetch a single record by id, or None if missing."""
 
     @abstractmethod
-    def search(self, vector: list[float], k: int) -> list[SearchHit]:
-        """Return the top-k nearest records by cosine similarity."""
+    def search(
+        self,
+        vector: list[float],
+        k: int,
+        *,
+        binary_sha: str | None = None,
+        name_regex: str | None = None,
+        address_range: tuple[str, str] | None = None,
+    ) -> list[SearchHit]:
+        """Return the top-k nearest records by cosine similarity.
+
+        Optional metadata filters are applied before scoring:
+          - binary_sha: only records of this binary
+          - name_regex: only records whose function name matches the regex
+          - address_range: only records whose address is in [lo, hi]
+        """
 
     @abstractmethod
     def remove_binary(self, binary_sha256: str) -> int:
@@ -151,11 +165,30 @@ class InMemoryStore(VectorStore):
     def get(self, id: str) -> VectorRecord | None:
         return self._records.get(id)
 
-    def search(self, vector: list[float], k: int) -> list[SearchHit]:
+    def search(
+        self,
+        vector: list[float],
+        k: int,
+        *,
+        binary_sha: str | None = None,
+        name_regex: str | None = None,
+        address_range: tuple[str, str] | None = None,
+    ) -> list[SearchHit]:
         if not self._records:
             return []
+        import re
+
+        pattern = re.compile(name_regex) if name_regex else None
         scored: list[tuple[float, VectorRecord]] = []
         for r in self._records.values():
+            if binary_sha is not None and r.binary_sha256 != binary_sha:
+                continue
+            if pattern is not None and not pattern.search(r.name):
+                continue
+            if address_range is not None and not (
+                address_range[0] <= r.address <= address_range[1]
+            ):
+                continue
             scored.append((_cosine_similarity(vector, r.vector), r))
         scored.sort(key=lambda t: t[0], reverse=True)
         hits: list[SearchHit] = []
@@ -271,10 +304,31 @@ class NumpyFileStore(VectorStore):
     def get(self, id: str) -> VectorRecord | None:
         return self._records.get(id)
 
-    def search(self, vector: list[float], k: int) -> list[SearchHit]:
+    def search(
+        self,
+        vector: list[float],
+        k: int,
+        *,
+        binary_sha: str | None = None,
+        name_regex: str | None = None,
+        address_range: tuple[str, str] | None = None,
+    ) -> list[SearchHit]:
         if not self._records:
             return []
-        scored = [(_cosine_similarity(vector, r.vector), r) for r in self._records.values()]
+        import re
+
+        pattern = re.compile(name_regex) if name_regex else None
+        scored: list[tuple[float, VectorRecord]] = []
+        for r in self._records.values():
+            if binary_sha is not None and r.binary_sha256 != binary_sha:
+                continue
+            if pattern is not None and not pattern.search(r.name):
+                continue
+            if address_range is not None and not (
+                address_range[0] <= r.address <= address_range[1]
+            ):
+                continue
+            scored.append((_cosine_similarity(vector, r.vector), r))
         scored.sort(key=lambda t: t[0], reverse=True)
         hits: list[SearchHit] = []
         for score, r in scored[:k]:

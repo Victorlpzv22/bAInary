@@ -105,8 +105,19 @@ class Index:
             self._store.upsert(records)
         self._store.flush()
 
-    def search(self, query: str, k: int = 5) -> list[SearchHit]:
-        """Search the corpus with a natural-language query."""
+    def search(
+        self,
+        query: str,
+        k: int = 5,
+        *,
+        binary_sha: str | None = None,
+        name_regex: str | None = None,
+        address_range: tuple[str, str] | None = None,
+    ) -> list[SearchHit]:
+        """Search the corpus with a natural-language query.
+
+        Optional metadata filters are applied before scoring.
+        """
         try:
             vectors = self._vectorizer.vectorize([query])
         except RagError as e:
@@ -114,9 +125,23 @@ class Index:
             return []
         if not vectors:
             return []
-        return self._store.search(vectors[0], k)
+        return self._store.search(
+            vectors[0],
+            k,
+            binary_sha=binary_sha,
+            name_regex=name_regex,
+            address_range=address_range,
+        )
 
-    def search_similar(self, fn: Function, k: int = 5) -> list[SearchHit]:
+    def search_similar(
+        self,
+        fn: Function,
+        k: int = 5,
+        *,
+        binary_sha: str | None = None,
+        name_regex: str | None = None,
+        address_range: tuple[str, str] | None = None,
+    ) -> list[SearchHit]:
         """Find functions similar to a given Function (itself will be the top hit if indexed)."""
         text = build_text(fn)
         try:
@@ -126,7 +151,13 @@ class Index:
             return []
         if not vectors:
             return []
-        return self._store.search(vectors[0], k)
+        return self._store.search(
+            vectors[0],
+            k,
+            binary_sha=binary_sha,
+            name_regex=name_regex,
+            address_range=address_range,
+        )
 
     def retrieve_context(self, fn: Function, k: int = 5) -> dict[str, Any]:
         """Structured block for LLM prompt injection (consumed by D later)."""
