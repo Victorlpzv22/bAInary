@@ -16,6 +16,7 @@ from bainary.rag.client import (
 from bainary.rag.errors import RagError as RagErrorDirect
 from bainary.rag.store import InMemoryStore, NumpyFileStore, SearchHit, VectorRecord
 from bainary.rag.text import TEXT_VERSION, build_text
+from bainary.rag.index import Index
 
 
 def test_rag_error_is_bainary_error():
@@ -282,3 +283,280 @@ def test_numpyfilestore_remove_binary(tmp_path):
     store.flush()
     store2 = NumpyFileStore(root=tmp_path, dim=3)
     assert store2.count() == 1
+
+
+# --- Index tests ---
+
+
+def _fn_dict_rag(
+    address: str,
+    name: str,
+    pseudocode: str | None = "// stub",
+    assembly: str = "ret",
+    size_bytes: int = 16,
+) -> dict:
+    return {
+        "address": address,
+        "name": name,
+        "signature": f"int {name}(void)",
+        "calling_convention": "cdecl",
+        "size_bytes": size_bytes,
+        "is_thunk": False,
+        "basic_blocks": [],
+        "cfg": {"nodes": [], "edges": []},
+        "callers": [],
+        "callees": [],
+        "assembly": assembly,
+        "pseudocode": pseudocode,
+        "pseudocode_error": None,
+        "decompiler": "ghidra",
+        "stack_frame": {"size": 0, "locals": []},
+    }
+
+
+def _make_artifact_rag(
+    functions: list[dict], binary_sha: str = "ab" * 32, path: str = "/tmp/test.elf"
+) -> BinaryArtifact:
+    return BinaryArtifact.from_dict(
+        {
+            "schema_version": "1.0",
+            "binary": {
+                "path": path,
+                "sha256": binary_sha,
+                "format": "ELF",
+                "arch": "x64",
+                "endianness": "little",
+                "entry_point": "0x401000",
+                "base_address": "0x400000",
+                "decompiler_version": "test",
+            },
+            "sections": [],
+            "imports": [],
+            "exports": [],
+            "strings": [],
+            "functions": functions,
+        }
+    )
+
+
+def _test_artifact_rag() -> BinaryArtifact:
+    return _make_artifact_rag(
+        [
+            _fn_dict_rag("0x1000", "main", pseudocode="int main() { return 0; }"),
+            _fn_dict_rag("0x2000", "add", pseudocode="int add() { return 1; }"),
+            _fn_dict_rag("0x3000", "no_pseudo", pseudocode=None),
+            _fn_dict_rag("0x4000", "empty", pseudocode=None, assembly=""),
+        ]
+    )
+
+
+def test_index_add_artifact(tmp_path):
+    emb = HashMockEmbeddings(dim=32)
+    from bainary.rag.store import InMemoryStore
+
+    idx = Index(embeddings=emb, store=InMemoryStore(dim=32), embedding_cache_root=tmp_path)
+    art = _test_artifact_rag()
+    idx.add_artifact(art)
+    # 3 functions with text (main, add, no_pseudo via ASM); empty has no text
+    assert len(idx) == 3
+
+
+def test_index_search_text_query(tmp_path):
+    emb = HashMockEmbeddings(dim=32)
+    from bainary.rag.store import InMemoryStore
+
+    idx = Index(embeddings=emb, store=InMemoryStore(dim=32), embedding_cache_root=tmp_path)
+    idx.add_artifact(_test_artifact_rag())
+    hits = idx.search("find main", k=2)
+    assert len(hits) <= 2
+    assert hits[0].score >= hits[-1].score
+
+
+def test_index_search_similar_returns_self(tmp_path):
+    emb = HashMockEmbeddings(dim=32)
+    from bainary.rag.store import InMemoryStore
+
+    idx = Index(embeddings=emb, store=InMemoryStore(dim=32), embedding_cache_root=tmp_path)
+    art = _test_artifact_rag()
+    idx.add_artifact(art)
+    fn = art.functions[0]
+    hits = idx.search_similar(fn, k=1)
+    assert len(hits) == 1
+    assert hits[0].function.name == "main"
+
+
+def test_index_cross_binary_corpus(tmp_path):
+    emb = HashMockEmbeddings(dim=32)
+    from bainary.rag.store import InMemoryStore
+
+    idx = Index(embeddings=emb, store=InMemoryStore(dim=32), embedding_cache_root=tmp_path)
+    art1 = _test_artifact_rag()
+    art2 = _make_artifact_rag(
+        [_fn_dict_rag("0x5000", "other_main", pseudocode="int other_main() { return 42; }")],
+        binary_sha="cd" * 32,
+        path="/tmp/other.elf",
+    )
+    idx.add_artifact(art1)
+    idx.add_artifact(art2)
+    assert len(idx) == 4
+    hits = idx.search("other_main", k=4)
+    names = {h.function.name for h in hits}
+    assert "other_main" in names
+
+
+def test_index_re_add_is_noop(tmp_path):
+    emb = HashMockEmbeddings(dim=32)
+    from bainary.rag.store import InMemoryStore
+
+    idx = Index(embeddings=emb, store=InMemoryStore(dim=32), embedding_cache_root=tmp_path)
+    art = _test_artifact_rag()
+    idx.add_artifact(art)
+    idx.add_artifact(art)
+    assert len(idx) == 3
+
+
+def test_index_text_change_re_embeds(tmp_path):
+    emb = HashMockEmbeddings(dim=32)
+    from bainary.rag.store import InMemoryStore
+
+    idx = Index(embeddings=emb, store=InMemoryStore(dim=32), embedding_cache_root=tmp_path)
+    art1 = _test_artifact_rag()
+    idx.add_artifact(art1)
+    art2 = _test_artifact_rag()
+    art2.functions[0].pseudocode = "int main() { return 99; }"
+    idx.add_artifact(art2)
+    assert len(idx) == 3
+
+
+def test_index_skip_no_text(tmp_path):
+    emb = HashMockEmbeddings(dim=32)
+    from bainary.rag.store import InMemoryStore
+
+    idx = Index(
+        embeddings=emb,
+        store=InMemoryStore(dim=32),
+        embedding_cache_root=tmp_path,
+        skip_no_text=True,
+    )
+    art = _make_artifact_rag([_fn_dict_rag("0x1", "empty", pseudocode=None, assembly="")])
+    idx.add_artifact(art)
+    assert len(idx) == 0
+
+
+def test_index_no_skip_no_text_raises(tmp_path):
+    emb = HashMockEmbeddings(dim=32)
+    from bainary.rag.store import InMemoryStore
+
+    idx = Index(
+        embeddings=emb,
+        store=InMemoryStore(dim=32),
+        embedding_cache_root=tmp_path,
+        skip_no_text=False,
+    )
+    art = _make_artifact_rag([_fn_dict_rag("0x1", "empty", pseudocode=None, assembly="")])
+    with pytest.raises(RagError, match="empty text"):
+        idx.add_artifact(art)
+
+
+def test_index_embedding_cache_hit_skips_client(tmp_path):
+    class CountingClient(HashMockEmbeddings):
+        def __init__(self) -> None:
+            super().__init__(dim=32)
+            self.call_count = 0
+
+        def embed(self, texts):
+            self.call_count += len(texts)
+            return super().embed(texts)
+
+    emb = CountingClient()
+    from bainary.rag.store import InMemoryStore
+
+    idx = Index(embeddings=emb, store=InMemoryStore(dim=32), embedding_cache_root=tmp_path)
+    art = _test_artifact_rag()
+    idx.add_artifact(art)
+    first_calls = emb.call_count
+    idx.add_artifact(art)
+    assert emb.call_count == first_calls
+
+
+def test_index_remove_artifact(tmp_path):
+    emb = HashMockEmbeddings(dim=32)
+    from bainary.rag.store import InMemoryStore
+
+    idx = Index(embeddings=emb, store=InMemoryStore(dim=32), embedding_cache_root=tmp_path)
+    art = _test_artifact_rag()
+    idx.add_artifact(art)
+    removed = idx.remove_artifact(art.binary.sha256)
+    assert removed == 3
+    assert len(idx) == 0
+
+
+def test_index_remove_artifact_none(tmp_path):
+    emb = HashMockEmbeddings(dim=32)
+    from bainary.rag.store import InMemoryStore
+
+    idx = Index(embeddings=emb, store=InMemoryStore(dim=32), embedding_cache_root=tmp_path)
+    assert idx.remove_artifact("ab" * 32) == 0
+
+
+def test_index_retrieve_context_shape(tmp_path):
+    emb = HashMockEmbeddings(dim=32)
+    from bainary.rag.store import InMemoryStore
+
+    idx = Index(embeddings=emb, store=InMemoryStore(dim=32), embedding_cache_root=tmp_path)
+    art = _test_artifact_rag()
+    idx.add_artifact(art)
+    ctx = idx.retrieve_context(art.functions[0], k=2)
+    assert "neighbors" in ctx
+    assert isinstance(ctx["neighbors"], list)
+    assert len(ctx["neighbors"]) <= 2
+    for item in ctx["neighbors"]:
+        assert isinstance(item, tuple)
+        assert len(item) == 2
+
+
+def test_index_default_store_is_numpyfilestore(tmp_path):
+    idx = Index(
+        embeddings=HashMockEmbeddings(dim=8),
+        store=NumpyFileStore(root=tmp_path / "rag", dim=8),
+        embedding_cache_root=tmp_path / "embcache",
+    )
+    idx.add_artifact(_test_artifact_rag())
+    idx.flush()
+    assert (tmp_path / "rag" / "store.npy").exists()
+    assert (tmp_path / "rag" / "records.json").exists()
+
+
+def test_index_embedding_failure_partial(tmp_path):
+    class FlakyClient(HashMockEmbeddings):
+        def __init__(self, fail_on_text_contains: str) -> None:
+            super().__init__(dim=32)
+            self._fail_on = fail_on_text_contains
+
+        def embed(self, texts):
+            if any(self._fail_on in t for t in texts):
+                raise RagError("simulated API failure")
+            return super().embed(texts)
+
+    from bainary.rag.store import InMemoryStore
+
+    idx = Index(
+        embeddings=FlakyClient(fail_on_text_contains="add"),
+        store=InMemoryStore(dim=32),
+        embedding_cache_root=tmp_path,
+    )
+    idx.add_artifact(_test_artifact_rag())
+    # main + no_pseudo indexed; add skipped
+    assert len(idx) == 2
+
+
+def test_index_len_and_search_empty(tmp_path):
+    from bainary.rag.store import InMemoryStore
+
+    idx = Index(
+        embeddings=HashMockEmbeddings(dim=32),
+        store=InMemoryStore(dim=32),
+        embedding_cache_root=tmp_path,
+    )
+    assert len(idx) == 0
+    assert idx.search("anything", k=5) == []

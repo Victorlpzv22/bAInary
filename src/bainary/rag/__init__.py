@@ -7,6 +7,8 @@ from bainary.rag.client import (
     create_embedding_client,
 )
 from bainary.rag.errors import RagError
+from bainary.rag.index import Index
+from bainary.rag.store import InMemoryStore, NumpyFileStore, SearchHit, VectorRecord, VectorStore
 
 __all__ = [
     "RagError",
@@ -14,4 +16,10 @@ __all__ = [
     "HashMockEmbeddings",
     "OpenAICompatibleEmbeddings",
     "create_embedding_client",
+    "Index",
+    "VectorStore",
+    "InMemoryStore",
+    "NumpyFileStore",
+    "VectorRecord",
+    "SearchHit",
 ]
