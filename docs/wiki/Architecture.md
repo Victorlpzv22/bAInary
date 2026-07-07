@@ -5,29 +5,31 @@ High-level design of the bAInary platform.
 ## Subsystems
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    bAInary Platform                          │
-├─────────────┬───────────────┬───────────────┬───────────────┤
-│  A: Lift    │   B: Graph    │  D: Refine    │ C/RAG, E:GUI │
-│              │               │               │ (future)      │
-│ parse        │ NetworkX      │ LLM clients   │               │
-│ decompile    │ queries       │ cache         │               │
-│ cache        │ serialization │ multi-provider│               │
-├──────┬───────┴──────┬────────┴───────┬───────┴───────────────┤
-│   ghidra_headless  │  lief_capstone  │  openai, anthropic    │
-│   (Ghidra JVM)     │  (LIEF+Capstone)│  mock (tests)         │
-└────────────────────┴────────────────┴───────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                         bAInary Platform                             │
+├─────────────┬───────────────┬───────────────┬───────────────┬────────┤
+│  A: Lift    │  B: Graph     │  C: RAG       │  D: Refine    │ E:GUI  │
+│              │               │               │               │(future)│
+│ parse        │ NetworkX      │ embeddings    │ LLM clients   │        │
+│ decompile    │ queries       │ vector store  │ cache         │        │
+│ cache        │ serialization │ cross-binary  │ multi-provider│        │
+├──────┬───────┴──────┬────────┴───────┬───────┴───────┬───────┴────────┤
+│   ghidra_headless  │  lief_capstone  │ numpy, mock   │ openai,        │
+│   (Ghidra JVM)     │  (LIEF+Capstone)│ (MVP)         │ anthropic,     │
+│                    │                │ chromadb etc  │ mock           │
+│                    │                │ (future)      │                │
+└────────────────────┴────────────────┴───────────────┴────────────────┘
 ```
 
 ## Design principles
 
-1. **Pluggable backends** — Every subsystem uses ABCs/strategies: `LifterBackend`, `LLMClient`. Adding a new backend means one new file, no changes to consumers.
+1. **Pluggable backends** — Every subsystem uses ABCs/strategies: `LifterBackend`, `LLMClient`, `EmbeddingClient`, `VectorStore`. Adding a new backend means one new file, no changes to consumers.
 
-2. **Immutable contracts** — `BinaryArtifact` is the stable contract between A → B → D. It's Pydantic-validated and schema-versioned.
+2. **Immutable contracts** — `BinaryArtifact` is the stable contract between A → B → C → D. It's Pydantic-validated and schema-versioned.
 
-3. **Cache by default** — Both A (sha256 + Ghidra version) and D (sha256 + model + prompt version) cache results to avoid expensive recomputation.
+3. **Cache by default** — A (sha256 + Ghidra version), D (sha256 + model + prompt version), and C (sha256 + model + text_version for embeddings, sha256 + index for the vector store) cache results to avoid expensive recomputation.
 
-4. **Partial failures** — If Ghidra fails to decompile one function or the LLM fails on one call, the rest of the artifact survives.
+4. **Partial failures** — If Ghidra fails to decompile one function, the LLM fails on one call, or the embedding API fails on one text, the rest of the artifact survives.
 
 5. **Fast lane** — Tests that don't need Ghidra run in <1s. Tests that need Ghidra are marked `@pytest.mark.slow` and run separately.
 
@@ -48,6 +50,12 @@ Binary (.exe, .elf, .macho)
 │  bainary.graph     │
 └────────┬──────────┘
          │ BinaryArtifact + CallGraph
+         ▼
+┌───────────────────┐
+│  C: RAG            │  EmbeddingClient + VectorStore
+│  bainary.rag       │  (OpenAI / mock; numpy+json MVP)
+└────────┬──────────┘
+         │ SearchHits / retrieve_context
          ▼
 ┌───────────────────┐
 │  D: Refine         │  LLM (OpenAI/Anthropic/Mock)
@@ -82,6 +90,14 @@ src/bainary/
 │   ├── __init__.py    #    re-exports
 │   └── errors.py      #    GraphError
 │
+├── rag/               # Subsystem C
+│   ├── index.py       #    Index class (orchestrator)
+│   ├── client.py      #    EmbeddingClient ABC + implementations
+│   ├── store.py       #    VectorStore ABC + InMemoryStore / NumpyFileStore
+│   ├── text.py        #    build_text() (pseudocode first, ASM fallback)
+│   ├── __init__.py    #    re-exports
+│   └── errors.py      #    RagError
+│
 └── refine/            # Subsystem D
     ├── refiner.py     #    Refiner class
     ├── client.py      #    LLMClient ABC + implementations
@@ -98,6 +114,7 @@ BainaryError                      (lift/errors.py)
 ├── LifterError                    (backend failed)
 ├── SchemaValidationError          (JSON validation)
 ├── GraphError                     (graph/errors.py)
+├── RagError                       (rag/errors.py)
 └── RefineError                    (refine/errors.py)
 ```
 
@@ -110,7 +127,8 @@ Runtime:
     typer>=0.12          CLI
     capstone>=5.0        Disassembly (lief_capstone backend)
     networkx>=3.2        Call graph (subsystem B)
-    openai>=1.0          OpenAI-compatible LLM client (subsystem D)
+    numpy>=1.26          Vector store + cosine sim (subsystem C)
+    openai>=1.0          Embeddings + LLM client (subsystems C and D)
     anthropic>=0.20      Anthropic-compatible LLM client (subsystem D)
 
 External:

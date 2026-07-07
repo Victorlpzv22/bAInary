@@ -7,10 +7,10 @@ AI-assisted reverse engineering of compiled binaries.
 - **Subsystem A — Binary parsing & lifting** (`bainary.lift`). Lift PE / ELF / Mach-O binaries (x86, x64, ARM, ARM64) to a structured JSON artifact with every function, its ASM, Ghidra's pseudo-C, control flow graph, callers/callees, sections, imports, exports, and strings. Two backends: `ghidra_headless` (with decompilation, 10–30s) and `lief_capstone` (ASM only, <1s). Sha256-keyed cache with LRU eviction.
 - **Subsystem B — Call graph** (`bainary.graph`). Build a `networkx.DiGraph` from any `BinaryArtifact`. Query callers, callees (direct or transitive), orphans, cycles (SCCs), and shortest paths. Serialize to GraphML (interchange) or pickle (lossless). Hybrid API: ergonomic methods + raw `cg.graph` access.
 - **Subsystem D — LLM refinement** (`bainary.refine`). Send decompiled pseudo-C to an LLM and get back cleaned-up code with meaningful variable names, removed warnings, and one-line comments. Multi-provider: OpenAI, Anthropic, OpenCode Go (GLM-5.2, Kimi K2.7 Code, DeepSeek V4, MiniMax M3, etc.). Cache prevents duplicate LLM calls. Filters for thunks, empty functions, and size. A `bainary-refine` package, not just a script.
+- **Subsystem C — RAG / embeddings** (`bainary.rag`). Index every function in a `BinaryArtifact` as a semantic vector and search for similar functions across a multi-binary corpus. Pluggable embeddings (OpenAI-compatible API, or deterministic offline mock) and pluggable vector store (NumPy + JSON MVP, ChromaDB/LanceDB/sqlite-vec/FAISS future). Pseudocode-first text with ASM fallback. Embedding cache keyed by `sha256(text + model + TEXT_VERSION)` prevents re-paying API cost for unchanged functions.
 
 ## What's not done yet
 
-- **C — RAG / embeddings.** Index functions semantically and search for similar ones across a corpus. Requires a vector store and an embeddings model.
 - **E — GUI.** Side-by-side Hex/ASM vs. reconstructed code view.
 
 ## Install
@@ -113,6 +113,40 @@ print(main.pseudocode)
 
 Supports OpenAI, Anthropic, and Mock (for tests) providers. Filters: `min_size`, `skip_thunks`, `skip_no_pseudocode`. Cache automatic.
 
+### Subsystem C — RAG
+
+```python
+import os
+from bainary.rag import Index, create_embedding_client
+
+embed = create_embedding_client(
+    provider="openai",
+    api_key=os.environ["OPENCODE_APIKEY"],
+    base_url="https://opencode.ai/zen/go/v1",
+    model="text-embedding-3-small",
+)
+
+idx = Index(embeddings=embed)
+idx.add_artifact(artifact)         # add an artifact to the corpus
+idx.add_artifact(other_artifact)   # corpus grows across binaries
+
+# Natural-language search
+hits = idx.search("parse HTTP request header", k=5)
+for h in hits:
+    print(h.score, h.binary_sha256, h.function.name)
+
+# Find similar functions
+neighbors = idx.search_similar(artifact.functions[0], k=5)
+
+# Structured context for LLM prompts (future D integration)
+ctx = idx.retrieve_context(artifact.functions[0], k=5)  # {"neighbors": [(fn, score), ...]}
+
+# Maintenance
+removed = idx.remove_artifact(artifact.binary.sha256)
+```
+
+The mock provider (`create_embedding_client(provider="mock", dim=N)`) is deterministic and offline — useful for tests and local exploration.
+
 ## Building test fixtures
 
 ```bash
@@ -134,7 +168,7 @@ pytest
 pytest tests/test_snapshot.py --update-snapshots -m slow
 ```
 
-110 tests total: 103 pass in the fast lane, 7 more (integration + snapshot) run when Ghidra is available.
+151 tests total: 144 pass in the fast lane, 7 more (integration + snapshot) run when Ghidra is available.
 
 ## Cache
 
@@ -155,6 +189,7 @@ Full documentation is in `docs/wiki/`:
 - [Subsystem A](docs/wiki/Subsystem-A-Lift.md) — lift
 - [Subsystem B](docs/wiki/Subsystem-B-Graph.md) — graph
 - [Subsystem D](docs/wiki/Subsystem-D-Refine.md) — refine
+- [Subsystem C](docs/wiki/Subsystem-C-RAG.md) — rag
 - [CLI reference](docs/wiki/CLI-Reference.md)
 - [Development guide](docs/wiki/Development-Guide.md)
 - [Examples](docs/wiki/Examples.md)
