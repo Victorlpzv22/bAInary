@@ -724,3 +724,122 @@ def _record_id_test(binary_sha: str, fn_address: str) -> str:
     import hashlib
 
     return hashlib.sha256(f"{binary_sha}:{fn_address}".encode()).hexdigest()
+
+
+# --- TfidfTextVectorizer tests ---
+
+
+def test_tfidf_vectorize_before_fit_raises():
+    from bainary.rag.vectorize import TfidfTextVectorizer
+
+    v = TfidfTextVectorizer(dim=16)
+    with pytest.raises(RagError, match="fit"):
+        v.vectorize(["hello"])
+
+
+def test_tfidf_fit_then_vectorize_dim():
+    from bainary.rag.vectorize import TfidfTextVectorizer
+
+    v = TfidfTextVectorizer(dim=64)
+    v.fit(["foo bar baz", "qux quux"])
+    out = v.vectorize(["foo bar"])[0]
+    assert len(out) == 64
+    assert v.dim == 64
+
+
+def test_tfidf_deterministic_after_fit():
+    from bainary.rag.vectorize import TfidfTextVectorizer
+
+    v = TfidfTextVectorizer(dim=32)
+    v.fit(["alpha beta gamma", "delta epsilon zeta", "eta theta iota"])
+    a = v.vectorize(["alpha beta"])[0]
+    b = v.vectorize(["alpha beta"])[0]
+    assert a == b
+
+
+def test_tfidf_different_text_different_vector():
+    from bainary.rag.vectorize import TfidfTextVectorizer
+
+    v = TfidfTextVectorizer(dim=32)
+    v.fit(["alpha beta", "gamma delta", "epsilon zeta"])
+    a = v.vectorize(["alpha beta"])[0]
+    b = v.vectorize(["completely unrelated nonsense xyzzy"])[0]
+    assert a != b
+
+
+def test_tfidf_idf_weights_rare_token_higher():
+    from bainary.rag.vectorize import TfidfTextVectorizer
+
+    corpus = [
+        "common common common common",
+        "common rare_word",
+        "common another",
+    ]
+    v = TfidfTextVectorizer(dim=64, ngram_range=(1, 1))
+    v.fit(corpus)
+    assert "common" in v._vocab
+    assert "rare_word" in v._vocab
+    idf_common = v._idf[v._vocab["common"]]
+    idf_rare = v._idf[v._vocab["rare_word"]]
+    assert idf_rare > idf_common
+
+
+def test_tfidf_save_load_roundtrip(tmp_path):
+    from bainary.rag.vectorize import TfidfTextVectorizer
+
+    v = TfidfTextVectorizer(dim=32, ngram_range=(1, 1))
+    v.fit(["foo bar", "baz qux", "alpha beta"])
+    path = tmp_path / "tfidf.json"
+    v.save(path)
+
+    v2 = TfidfTextVectorizer.load(path)
+    assert v2.dim == v.dim
+    a = v.vectorize(["foo"])[0]
+    b = v2.vectorize(["foo"])[0]
+    assert a == b
+
+
+def test_tfidf_ngram_range_1_2():
+    from bainary.rag.vectorize import TfidfTextVectorizer
+
+    v = TfidfTextVectorizer(dim=128, ngram_range=(1, 2))
+    v.fit(["int main()", "void foo()", "char * bar()"])
+    v.vectorize(["int main()"])
+    assert v._vocab.get("int") is not None
+    assert v._vocab.get("main") is not None
+    assert v._vocab.get("int main") is not None
+
+
+def test_tfidf_min_df_filters_rare_tokens():
+    from bainary.rag.vectorize import TfidfTextVectorizer
+
+    v = TfidfTextVectorizer(dim=64, ngram_range=(1, 1), min_df=2)
+    v.fit(["foo bar", "foo baz", "alpha beta"])
+    assert "alpha" not in v._vocab
+    assert "beta" not in v._vocab
+    assert "foo" in v._vocab
+
+
+def test_tfidf_max_df_ratio_filters_common_tokens():
+    from bainary.rag.vectorize import TfidfTextVectorizer
+
+    v = TfidfTextVectorizer(dim=64, ngram_range=(1, 1), max_df_ratio=0.5)
+    v.fit(
+        [
+            "common a",
+            "common b",
+            "common c",
+            "common d",
+            "rare x",
+        ]
+    )
+    assert "common" not in v._vocab
+    assert "rare" in v._vocab
+
+
+def test_tfidf_is_textual_vectorizer():
+    from bainary.rag.vectorize import TfidfTextVectorizer
+
+    v = TfidfTextVectorizer(dim=8)
+    v.fit(["hello world", "foo bar"])
+    assert isinstance(v, TextualVectorizer)

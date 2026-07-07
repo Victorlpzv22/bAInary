@@ -10,6 +10,7 @@ from bainary.rag.text import TEXT_VERSION, build_text
 from bainary.rag.vectorize import (
     HashingTextVectorizer,
     TextualVectorizer,
+    TfidfTextVectorizer,
     create_textual_vectorizer,
 )
 
@@ -18,6 +19,7 @@ __all__ = [
     "Index",
     "TextualVectorizer",
     "HashingTextVectorizer",
+    "TfidfTextVectorizer",
     "create_textual_vectorizer",
     "VectorStore",
     "InMemoryStore",
