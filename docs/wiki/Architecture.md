@@ -8,11 +8,12 @@ High-level design of the bAInary platform.
 ┌─────────────────────────────────────────────────────────────────────┐
 │                         bAInary Platform                             │
 ├─────────────┬───────────────┬───────────────┬───────────────┬────────┤
-│  A: Lift    │  B: Graph     │  C: RAG       │  D: Refine    │ E:GUI  │
+│  A: Lift    │  B: Graph     │  C: Search    │  D: Refine    │ E:GUI  │
 │              │               │               │               │(future)│
-│ parse        │ NetworkX      │ embeddings    │ LLM clients   │        │
-│ decompile    │ queries       │ vector store  │ cache         │        │
-│ cache        │ serialization │ cross-binary  │ multi-provider│        │
+│ parse        │ NetworkX      │ textual       │ LLM clients   │        │
+│ decompile    │ queries       │ vectorizer    │ cache         │        │
+│ cache        │ serialization │ vector store  │ multi-provider│        │
+│              │               │ cross-binary  │               │        │
 ├──────┬───────┴──────┬────────┴───────┬───────┴───────┬───────┴────────┤
 │   ghidra_headless  │  lief_capstone  │ numpy, mock   │ openai,        │
 │   (Ghidra JVM)     │  (LIEF+Capstone)│ (MVP)         │ anthropic,     │
@@ -23,15 +24,17 @@ High-level design of the bAInary platform.
 
 ## Design principles
 
-1. **Pluggable backends** — Every subsystem uses ABCs/strategies: `LifterBackend`, `LLMClient`, `EmbeddingClient`, `VectorStore`. Adding a new backend means one new file, no changes to consumers.
+1. **Pluggable backends** — Every subsystem uses ABCs/strategies: `LifterBackend`, `LLMClient`, `TextualVectorizer`, `VectorStore`. Adding a new backend means one new file, no changes to consumers.
 
 2. **Immutable contracts** — `BinaryArtifact` is the stable contract between A → B → C → D. It's Pydantic-validated and schema-versioned.
 
-3. **Cache by default** — A (sha256 + Ghidra version), D (sha256 + model + prompt version), and C (sha256 + model + text_version for embeddings, sha256 + index for the vector store) cache results to avoid expensive recomputation.
+3. **Cache by default** — A (sha256 + Ghidra version) and D (sha256 + model + prompt version) cache results to avoid expensive recomputation. C does not need a cache — vectorization is local and microsecond-scale.
 
-4. **Partial failures** — If Ghidra fails to decompile one function, the LLM fails on one call, or the embedding API fails on one text, the rest of the artifact survives.
+4. **Partial failures** — If Ghidra fails to decompile one function, the LLM fails on one call, or the vectorizer fails on one function, the rest of the artifact survives.
 
-5. **Fast lane** — Tests that don't need Ghidra run in <1s. Tests that need Ghidra are marked `@pytest.mark.slow` and run separately.
+5. **No embedding model, no network, no API key in C** — vectorization is local (hashing trick by default). The subsystem can be used in air-gapped environments.
+
+6. **Fast lane** — Tests that don't need Ghidra run in <1s. Tests that need Ghidra are marked `@pytest.mark.slow` and run separately.
 
 ## Data flow
 
@@ -52,8 +55,8 @@ Binary (.exe, .elf, .macho)
          │ BinaryArtifact + CallGraph
          ▼
 ┌───────────────────┐
-│  C: RAG            │  EmbeddingClient + VectorStore
-│  bainary.rag       │  (OpenAI / mock; numpy+json MVP)
+│  C: Search         │  TextualVectorizer + VectorStore
+│  bainary.rag       │  (hashing trick + numpy+json MVP)
 └────────┬──────────┘
          │ SearchHits / retrieve_context
          ▼
@@ -92,7 +95,7 @@ src/bainary/
 │
 ├── rag/               # Subsystem C
 │   ├── index.py       #    Index class (orchestrator)
-│   ├── client.py      #    EmbeddingClient ABC + implementations
+│   ├── vectorize.py   #    TextualVectorizer ABC + HashingTextVectorizer
 │   ├── store.py       #    VectorStore ABC + InMemoryStore / NumpyFileStore
 │   ├── text.py        #    build_text() (pseudocode first, ASM fallback)
 │   ├── __init__.py    #    re-exports
@@ -128,7 +131,7 @@ Runtime:
     capstone>=5.0        Disassembly (lief_capstone backend)
     networkx>=3.2        Call graph (subsystem B)
     numpy>=1.26          Vector store + cosine sim (subsystem C)
-    openai>=1.0          Embeddings + LLM client (subsystems C and D)
+    openai>=1.0          LLM client (subsystem D)
     anthropic>=0.20      Anthropic-compatible LLM client (subsystem D)
 
 External:

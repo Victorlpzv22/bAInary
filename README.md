@@ -7,7 +7,7 @@ AI-assisted reverse engineering of compiled binaries.
 - **Subsystem A — Binary parsing & lifting** (`bainary.lift`). Lift PE / ELF / Mach-O binaries (x86, x64, ARM, ARM64) to a structured JSON artifact with every function, its ASM, Ghidra's pseudo-C, control flow graph, callers/callees, sections, imports, exports, and strings. Two backends: `ghidra_headless` (with decompilation, 10–30s) and `lief_capstone` (ASM only, <1s). Sha256-keyed cache with LRU eviction.
 - **Subsystem B — Call graph** (`bainary.graph`). Build a `networkx.DiGraph` from any `BinaryArtifact`. Query callers, callees (direct or transitive), orphans, cycles (SCCs), and shortest paths. Serialize to GraphML (interchange) or pickle (lossless). Hybrid API: ergonomic methods + raw `cg.graph` access.
 - **Subsystem D — LLM refinement** (`bainary.refine`). Send decompiled pseudo-C to an LLM and get back cleaned-up code with meaningful variable names, removed warnings, and one-line comments. Multi-provider: OpenAI, Anthropic, OpenCode Go (GLM-5.2, Kimi K2.7 Code, DeepSeek V4, MiniMax M3, etc.). Cache prevents duplicate LLM calls. Filters for thunks, empty functions, and size. A `bainary-refine` package, not just a script.
-- **Subsystem C — RAG / embeddings** (`bainary.rag`). Index every function in a `BinaryArtifact` as a semantic vector and search for similar functions across a multi-binary corpus. Pluggable embeddings (OpenAI-compatible API, or deterministic offline mock) and pluggable vector store (NumPy + JSON MVP, ChromaDB/LanceDB/sqlite-vec/FAISS future). Pseudocode-first text with ASM fallback. Embedding cache keyed by `sha256(text + model + TEXT_VERSION)` prevents re-paying API cost for unchanged functions.
+- **Subsystem C — Cross-binary function search** (`bainary.rag`). Index every function in a `BinaryArtifact` and search for similar functions across a multi-binary corpus. Vectorization is local (hashing trick over n-gram tokens, no model, no API key, no network) and pluggable via `TextualVectorizer`. Pluggable vector store (NumPy + JSON MVP, ChromaDB/LanceDB/sqlite-vec/FAISS future). Pseudocode-first text with ASM fallback.
 
 ## What's not done yet
 
@@ -113,39 +113,33 @@ print(main.pseudocode)
 
 Supports OpenAI, Anthropic, and Mock (for tests) providers. Filters: `min_size`, `skip_thunks`, `skip_no_pseudocode`. Cache automatic.
 
-### Subsystem C — RAG
+### Subsystem C — Cross-binary function search
 
 ```python
-import os
-from bainary.rag import Index, create_embedding_client
+from bainary.rag import Index, create_textual_vectorizer
 
-embed = create_embedding_client(
-    provider="openai",
-    api_key=os.environ["OPENCODE_APIKEY"],
-    base_url="https://opencode.ai/zen/go/v1",
-    model="text-embedding-3-small",
-)
+vec = create_textual_vectorizer()        # default: HashingTextVectorizer(dim=1024)
+idx = Index(vectorizer=vec)              # defaults to NumpyFileStore at ~/.cache/bainary/rag/
 
-idx = Index(embeddings=embed)
-idx.add_artifact(artifact)         # add an artifact to the corpus
-idx.add_artifact(other_artifact)   # corpus grows across binaries
+idx.add_artifact(artifact)               # index a binary
+idx.add_artifact(other_artifact)         # corpus grows across binaries
 
-# Natural-language search
+# Natural-language search (lexical, not semantic — n-gram hashing trick)
 hits = idx.search("parse HTTP request header", k=5)
 for h in hits:
     print(h.score, h.binary_sha256, h.function.name)
 
-# Find similar functions
+# Find functions similar to a given one
 neighbors = idx.search_similar(artifact.functions[0], k=5)
 
-# Structured context for LLM prompts (future D integration)
+# Structured context block for LLM prompts (future D integration)
 ctx = idx.retrieve_context(artifact.functions[0], k=5)  # {"neighbors": [(fn, score), ...]}
 
 # Maintenance
 removed = idx.remove_artifact(artifact.binary.sha256)
 ```
 
-The mock provider (`create_embedding_client(provider="mock", dim=N)`) is deterministic and offline — useful for tests and local exploration.
+No embedding model is used. Vectorization is local (hashing trick over C-like tokens + 2-grams), deterministic, and runs in microseconds. Cosine similarity ranks hits.
 
 ## Building test fixtures
 
@@ -168,7 +162,7 @@ pytest
 pytest tests/test_snapshot.py --update-snapshots -m slow
 ```
 
-151 tests total: 144 pass in the fast lane, 7 more (integration + snapshot) run when Ghidra is available.
+150 tests total: 143 pass in the fast lane, 7 more (integration + snapshot) run when Ghidra is available.
 
 ## Cache
 
