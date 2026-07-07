@@ -14,7 +14,7 @@ from bainary.rag.client import (
     create_embedding_client,
 )
 from bainary.rag.errors import RagError as RagErrorDirect
-from bainary.rag.store import InMemoryStore, SearchHit, VectorRecord
+from bainary.rag.store import InMemoryStore, NumpyFileStore, SearchHit, VectorRecord
 from bainary.rag.text import TEXT_VERSION, build_text
 
 
@@ -230,3 +230,55 @@ def test_search_hit_fields():
     assert hit.binary_sha256 == "ab" * 32
     assert hit.score == 0.42
     assert hit.source == "/tmp/test.elf"
+
+
+def test_numpyfilestore_persistence(tmp_path):
+    store = NumpyFileStore(root=tmp_path, dim=3)
+    store.upsert([_make_record(id="r1", vector=[1.0, 0.0, 0.0])])
+    store.upsert([_make_record(id="r2", vector=[0.0, 1.0, 0.0])])
+    store.flush()
+    assert store.count() == 2
+
+    store2 = NumpyFileStore(root=tmp_path, dim=3)
+    assert store2.count() == 2
+    hits = store2.search([1.0, 0.0, 0.0], k=1)
+    assert len(hits) == 1
+    assert hits[0].function.name == "main"
+
+
+def test_numpyfilestore_default_root():
+    store = NumpyFileStore(dim=3)
+    assert store.count() >= 0
+    store.flush()
+    store.close()
+
+
+def test_numpyfilestore_corrupt_records_recovers(tmp_path):
+    store = NumpyFileStore(root=tmp_path, dim=3)
+    store.upsert([_make_record(id="r1")])
+    store.flush()
+    records_path = tmp_path / "records.json"
+    records_path.write_text("{not valid json")
+    store2 = NumpyFileStore(root=tmp_path, dim=3)
+    assert store2.count() == 0
+
+
+def test_numpyfilestore_corrupt_npy_recovers(tmp_path):
+    store = NumpyFileStore(root=tmp_path, dim=3)
+    store.upsert([_make_record(id="r1", vector=[1.0, 0.0, 0.0])])
+    store.flush()
+    (tmp_path / "store.npy").write_bytes(b"garbage")
+    store2 = NumpyFileStore(root=tmp_path, dim=3)
+    assert store2.count() == 0
+
+
+def test_numpyfilestore_remove_binary(tmp_path):
+    store = NumpyFileStore(root=tmp_path, dim=3)
+    store.upsert([_make_record(id="r1", binary_sha256="ab" * 32)])
+    store.upsert([_make_record(id="r2", binary_sha256="cd" * 32)])
+    store.flush()
+    removed = store.remove_binary("ab" * 32)
+    assert removed == 1
+    store.flush()
+    store2 = NumpyFileStore(root=tmp_path, dim=3)
+    assert store2.count() == 1
