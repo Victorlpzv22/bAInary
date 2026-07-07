@@ -50,7 +50,7 @@ warn_unused_ignores = true
 disallow_untyped_defs = true
 
 [[tool.mypy.overrides]]
-module = ["lief", "capstone", "typer"]
+module = ["lief", "capstone", "typer", "dotenv", "fastapi", "uvicorn", "sse_starlette", "multipart"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
