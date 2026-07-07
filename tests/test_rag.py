@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from bainary.lift.artifact import BinaryArtifact, Function
@@ -843,3 +845,125 @@ def test_tfidf_is_textual_vectorizer():
     v = TfidfTextVectorizer(dim=8)
     v.fit(["hello world", "foo bar"])
     assert isinstance(v, TextualVectorizer)
+
+
+# --- CLI tests ---
+
+
+def test_cli_index_search_roundtrip(tmp_path):
+    """End-to-end: lift hello.elf, index, search 'main', find it."""
+    from typer.testing import CliRunner
+
+    from bainary.rag.cli import app
+
+    fixture = Path(__file__).resolve().parent / "fixtures" / "hello_elf64" / "hello.elf"
+    assert fixture.exists(), f"fixture missing: {fixture}"
+
+    store_root = tmp_path / "store"
+    runner = CliRunner()
+
+    result = runner.invoke(
+        app,
+        ["index", str(fixture), "--store-root", str(store_root)],
+    )
+    assert result.exit_code == 0, result.stdout + result.stderr
+
+    result = runner.invoke(
+        app,
+        ["search", "main", "--store-root", str(store_root), "-k", "5"],
+    )
+    assert result.exit_code == 0, result.stdout + result.stderr
+    # The output should contain at least one line with 'main'.
+    assert "main" in result.stdout.lower()
+
+
+def test_cli_search_empty_corpus(tmp_path):
+    from typer.testing import CliRunner
+
+    from bainary.rag.cli import app
+
+    store_root = tmp_path / "store"
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        ["search", "anything", "--store-root", str(store_root), "-k", "5"],
+    )
+    assert result.exit_code == 0
+    # Empty corpus: 0 hits header line, no rows.
+    assert "0 hits" in result.stdout or "count: 0" in result.stdout.lower()
+
+
+def test_cli_search_k_flag(tmp_path):
+    from typer.testing import CliRunner
+
+    from bainary.rag.cli import app
+
+    fixture = Path(__file__).resolve().parent / "fixtures" / "hello_elf64" / "hello.elf"
+    store_root = tmp_path / "store"
+    runner = CliRunner()
+    runner.invoke(app, ["index", str(fixture), "--store-root", str(store_root)])
+    result = runner.invoke(
+        app,
+        ["search", "function", "--store-root", str(store_root), "-k", "1"],
+    )
+    assert result.exit_code == 0
+    # The data rows are TSV lines starting with the score. We expect exactly
+    # one such line (k=1).
+    data_lines = [
+        line for line in result.stdout.splitlines() if line and line[0].isdigit() and "\t" in line
+    ]
+    assert len(data_lines) == 1
+
+
+def test_cli_stats(tmp_path):
+    from typer.testing import CliRunner
+
+    from bainary.rag.cli import app
+
+    fixture = Path(__file__).resolve().parent / "fixtures" / "hello_elf64" / "hello.elf"
+    store_root = tmp_path / "store"
+    runner = CliRunner()
+    runner.invoke(app, ["index", str(fixture), "--store-root", str(store_root)])
+    result = runner.invoke(app, ["stats", "--store-root", str(store_root)])
+    assert result.exit_code == 0
+    assert "functions:" in result.stdout
+    # After indexing hello.elf we should have more than 0 functions.
+    assert "functions: 0" not in result.stdout
+
+
+def test_cli_stats_empty(tmp_path):
+    from typer.testing import CliRunner
+
+    from bainary.rag.cli import app
+
+    store_root = tmp_path / "store"
+    runner = CliRunner()
+    result = runner.invoke(app, ["stats", "--store-root", str(store_root)])
+    assert result.exit_code == 0
+    assert "functions: 0" in result.stdout
+
+
+def test_cli_index_from_artifact(tmp_path):
+    """--from-artifact accepts an already-lifted JSON path."""
+    from typer.testing import CliRunner
+
+    from bainary.rag.cli import app
+
+    fixture = Path(__file__).resolve().parent / "fixtures" / "hello_elf64" / "hello.elf"
+    # Lift to a JSON file first.
+    from bainary.lift import lift
+
+    artifact = lift(str(fixture), backend="lief_capstone")
+    artifact_path = tmp_path / "artifact.json"
+    artifact.to_json(artifact_path)
+
+    store_root = tmp_path / "store"
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        ["index", "--from-artifact", str(artifact_path), "--store-root", str(store_root)],
+    )
+    assert result.exit_code == 0, result.stdout + result.stderr
+    # Confirm by stats.
+    result = runner.invoke(app, ["stats", "--store-root", str(store_root)])
+    assert "functions: 0" not in result.stdout

@@ -96,6 +96,14 @@ class VectorStore(ABC):
         """Return all records belonging to the given binary. Order is unspecified."""
 
     @abstractmethod
+    def list_all(self) -> list[VectorRecord]:
+        """Return all records in the store. Order is unspecified."""
+
+    @abstractmethod
+    def list_binaries(self) -> list[str]:
+        """Return the set of distinct binary_sha256 in the store."""
+
+    @abstractmethod
     def remove_by_id(self, id: str) -> bool:
         """Remove a single record by id. Returns True if removed, False if not present."""
 
@@ -170,6 +178,12 @@ class InMemoryStore(VectorStore):
 
     def list_by_binary(self, binary_sha256: str) -> list[VectorRecord]:
         return [r for r in self._records.values() if r.binary_sha256 == binary_sha256]
+
+    def list_all(self) -> list[VectorRecord]:
+        return list(self._records.values())
+
+    def list_binaries(self) -> list[str]:
+        return sorted({r.binary_sha256 for r in self._records.values()})
 
     def remove_by_id(self, id: str) -> bool:
         if id in self._records:
@@ -284,6 +298,12 @@ class NumpyFileStore(VectorStore):
 
     def list_by_binary(self, binary_sha256: str) -> list[VectorRecord]:
         return [r for r in self._records.values() if r.binary_sha256 == binary_sha256]
+
+    def list_all(self) -> list[VectorRecord]:
+        return list(self._records.values())
+
+    def list_binaries(self) -> list[str]:
+        return sorted({r.binary_sha256 for r in self._records.values()})
 
     def remove_by_id(self, id: str) -> bool:
         if id in self._records:

@@ -30,6 +30,7 @@ dev = [
 
 [project.scripts]
 bainary-lift = "bainary.lift.cli:app"
+bainary-rag = "bainary.rag.cli:app"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/bainary"]
@@ -54,6 +55,10 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = "bainary.lift.cli"
+disable_error_code = "untyped-decorator"
+
+[[tool.mypy.overrides]]
+module = "bainary.rag.cli"
 disable_error_code = "untyped-decorator"
 
 # TODO(Task 5): remove once bainary.refine.refiner exists.
