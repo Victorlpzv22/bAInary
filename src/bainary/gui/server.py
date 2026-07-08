@@ -34,6 +34,11 @@ def create_app() -> FastAPI:
     # One ArtifactSession per process — single-tenant, loopback by default.
     app.state.session = ArtifactSession()
 
+    # SSE broker for fan-out of background-job progress to browser tabs.
+    from bainary.gui.sse import SSEBroker
+
+    app.state.sse_broker = SSEBroker()
+
     # Static assets (HTML shell + per-panel JS + CSS). Mount before the
     # root catch-all so the SPA shell loads at /.
     app.mount(
