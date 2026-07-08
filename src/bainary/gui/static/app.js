@@ -17,6 +17,15 @@ const bus = new EventTarget();
 function $(sel) { return document.querySelector(sel); }
 function $$(sel) { return Array.from(document.querySelectorAll(sel)); }
 
+// Bridge the few window-scoped CustomEvents that dialogs publish (they live
+// outside the bus because they are wired before the bus is ready in some
+// ordering cases).
+function bridgeWindowEvents() {
+  window.addEventListener("__bainary-log", (e) => {
+    bus.dispatchEvent(new CustomEvent("log", { detail: e.detail }));
+  });
+}
+
 // SSE wiring: subscribe to backend events; dispatch as DOM CustomEvents.
 function startSSE() {
   const es = new EventSource("/api/events");
@@ -36,8 +45,8 @@ function startSSE() {
 
 // Topbar button wiring.
 function initTopbar() {
-  $("#open-binary").addEventListener("click", () => openBinaryPanel.show(bus));
-  $("#open-settings").addEventListener("click", () => settingsPanel.show(bus));
+  $("#open-binary").addEventListener("click", () => openBinaryPanel.show());
+  $("#open-settings").addEventListener("click", () => settingsPanel.show());
   $("#toggle-hex").addEventListener("click", () => hexPanel.toggle());
 }
 
@@ -117,6 +126,7 @@ window.addEventListener("DOMContentLoaded", () => {
   initBusRouting();
   initResize();
   startSSE();
+  bridgeWindowEvents();
   consolePanel.init(bus);
   functionTree.init(bus);
   graphPanel.init(bus);

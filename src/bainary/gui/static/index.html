@@ -108,13 +108,13 @@
   </div>
 
   <dialog id="dialog-open">
-    <form method="dialog">
+    <form id="open-form" method="dialog">
       <h2>Abrir binario</h2>
-      <label><input type="radio" name="src" value="upload" checked> Subir fichero</label>
-      <input type="file" id="open-file">
-      <label><input type="radio" name="src" value="path"> Ruta local</label>
-      <input type="text" id="open-path" placeholder="/ruta/al/elf.exe" disabled>
-      <label>Backend
+      <label class="open-row"><input type="radio" name="src" value="upload" checked> Subir fichero</label>
+      <input type="file" id="open-file" class="open-input">
+      <label class="open-row"><input type="radio" name="src" value="path"> Ruta local</label>
+      <input type="text" id="open-path" placeholder="/ruta/al/elf.exe" class="open-input" disabled>
+      <label class="open-row">Backend
         <select id="open-backend">
           <option value="lief_capstone">lief_capstone (rapido, sin Ghidra)</option>
           <option value="ghidra_headless">ghidra_headless (lento, completo)</option>
