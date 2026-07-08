@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>bAInary</title>
-  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="/static/styles.css?v=20260708">
   <script type="importmap">
   {
     "imports": {
@@ -145,6 +145,156 @@
     </form>
   </dialog>
 
-  <script type="module" src="/static/app.js"></script>
+  <script>
+    // ============================================================
+    // Inline bootstrap — always works, no module imports needed.
+    // This guarantees the "Abrir binario" button opens the dialog
+    // even if app.js (a module) fails to load due to any import
+    // error in the module graph.
+    // ============================================================
+    window.addEventListener("error", (e) => {
+      console.error("[bAInary] JS error:", e.message, e.filename, e.lineno);
+      const st = document.getElementById("lift-status");
+      if (st) st.textContent = "JS error: " + e.message;
+    });
+
+    function _wireOpenDialog() {
+      // "Abrir binario" button → open dialog
+      const btnOpen = document.getElementById("open-binary");
+      if (btnOpen && !btnOpen.dataset.bainaryWired) {
+        btnOpen.dataset.bainaryWired = "1";
+        btnOpen.addEventListener("click", () => {
+          document.getElementById("dialog-open").showModal();
+        });
+      }
+      // "Settings" button → open dialog
+      const btnSet = document.getElementById("open-settings");
+      if (btnSet && !btnSet.dataset.bainaryWired) {
+        btnSet.dataset.bainaryWired = "1";
+        btnSet.addEventListener("click", () => {
+          document.getElementById("dialog-settings").showModal();
+        });
+      }
+      // Radio toggle: file vs path
+      document.querySelectorAll("[name=src]").forEach(r => {
+        if (r.dataset.bainaryWired) return;
+        r.dataset.bainaryWired = "1";
+        r.addEventListener("change", () => {
+          const checked = document.querySelector("[name=src]:checked");
+          if (!checked) return;
+          const useUpload = checked.value === "upload";
+          const fileInput = document.getElementById("open-file");
+          const pathInput = document.getElementById("open-path");
+          if (fileInput) fileInput.disabled = !useUpload;
+          if (pathInput) pathInput.disabled = useUpload;
+        });
+      });
+      // "Lift" submit button
+      const btnLift = document.getElementById("open-submit");
+      if (btnLift && !btnLift.dataset.bainaryWired) {
+        btnLift.dataset.bainaryWired = "1";
+        btnLift.addEventListener("click", async (ev) => {
+          ev.preventDefault();
+          const errEl = document.getElementById("open-error");
+          if (errEl) { errEl.hidden = true; errEl.textContent = ""; }
+          const src = document.querySelector("[name=src]:checked");
+          const srcVal = src ? src.value : "upload";
+          const backend = document.getElementById("open-backend");
+          const backendVal = backend ? backend.value : "lief_capstone";
+          try {
+            let r;
+            if (srcVal === "upload") {
+              const f = document.getElementById("open-file");
+              if (!f || !f.files[0]) throw new Error("selecciona un fichero");
+              const fd = new FormData();
+              fd.append("file", f.files[0]);
+              r = await fetch("/api/lift/upload?backend=" + encodeURIComponent(backendVal), { method: "POST", body: fd });
+            } else {
+              const p = document.getElementById("open-path");
+              const pv = (p ? p.value : "").trim();
+              if (!pv) throw new Error("introduce una ruta");
+              r = await fetch("/api/lift/path", {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ path: pv, backend: backendVal }),
+              });
+            }
+            if (!r.ok) {
+              const j = await r.json().catch(() => ({}));
+              throw new Error(typeof j.detail === "string" ? j.detail : "HTTP " + r.status);
+            }
+            const j = await r.json();
+            const st = document.getElementById("lift-status");
+            if (st) st.textContent = "lifting " + (j.job_id || "...");
+            document.getElementById("dialog-open").close();
+          } catch (e) {
+            if (errEl) { errEl.textContent = e.message; errEl.hidden = false; }
+            console.error("[bAInary] lift error:", e);
+          }
+        });
+      }
+      // "Settings save" button
+      const btnSave = document.getElementById("settings-save");
+      if (btnSave && !btnSave.dataset.bainaryWired) {
+        btnSave.dataset.bainaryWired = "1";
+        btnSave.addEventListener("click", async (ev) => {
+          ev.preventDefault();
+          const errEl = document.getElementById("settings-error");
+          if (errEl) { errEl.hidden = true; errEl.textContent = ""; }
+          const body = {
+            LLM_PROVIDER: document.getElementById("set-provider")?.value || "",
+            LLM_MODEL: document.getElementById("set-model")?.value || "",
+            LLM_BASE_URL: document.getElementById("set-url")?.value || "",
+            LIFT_BACKEND: document.getElementById("set-lift")?.value || "",
+          };
+          const key = document.getElementById("set-key")?.value || "";
+          if (key) body.OPENCODE_APIKEY = key;
+          try {
+            const r = await fetch("/api/settings", {
+              method: "PUT",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify(body),
+            });
+            if (!r.ok) {
+              const j = await r.json().catch(() => ({}));
+              throw new Error(typeof j.detail === "string" ? j.detail : "HTTP " + r.status);
+            }
+            document.getElementById("dialog-settings").close();
+          } catch (e) {
+            if (errEl) { errEl.textContent = e.message; errEl.hidden = false; }
+            console.error("[bAInary] settings error:", e);
+          }
+        });
+      }
+      // Load settings into dialog when it opens (lazy fetch)
+      const btnSet2 = document.getElementById("open-settings");
+      if (btnSet2 && !btnSet2.dataset.bainaryLoadWired) {
+        btnSet2.dataset.bainaryLoadWired = "1";
+        btnSet2.addEventListener("click", async () => {
+          try {
+            const r = await fetch("/api/settings");
+            const s = await r.json();
+            const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ""; };
+            set("set-provider", s.llm_provider);
+            set("set-model", s.llm_model);
+            set("set-url", s.llm_base_url);
+            set("set-lift", s.lift_backend);
+            const key = document.getElementById("set-key");
+            if (key) { key.value = ""; key.placeholder = s.api_key_masked || "(sin clave)"; }
+          } catch (e) {
+            console.error("[bAInary] settings fetch error:", e);
+          }
+        });
+      }
+    }
+
+    // Run immediately if DOM is ready, else on DOMContentLoaded.
+    if (document.readyState !== "loading") {
+      _wireOpenDialog();
+    } else {
+      document.addEventListener("DOMContentLoaded", _wireOpenDialog);
+    }
+  </script>
+  <script type="module" src="/static/app.js?v=20260708b"></script>
 </body>
 </html>

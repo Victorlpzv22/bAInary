@@ -17,10 +17,25 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from bainary.gui.state import ArtifactSession
 
 _STATIC_DIR = Path(__file__).parent / "static"
+
+
+class _NoCacheStatic(BaseHTTPMiddleware):
+    """Send ``Cache-Control: no-cache`` for all /static responses.
+
+    Prevents the browser from caching stale JS/CSS files during development.
+    The HTML shell (served at ``/``) also gets ``no-cache``.
+    """
+
+    async def dispatch(self, request: object, call_next: object) -> object:
+        response = await call_next(request)
+        if request.url.path.startswith("/static") or request.url.path == "/":
+            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        return response
 
 
 def create_app() -> FastAPI:
@@ -30,6 +45,8 @@ def create_app() -> FastAPI:
         version="0.1.0",
         description="AI-assisted reverse engineering GUI for bAInary.",
     )
+
+    app.add_middleware(_NoCacheStatic)
 
     # One ArtifactSession per process — single-tenant, loopback by default.
     app.state.session = ArtifactSession()

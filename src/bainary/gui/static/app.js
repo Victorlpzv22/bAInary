@@ -2,6 +2,8 @@
 // Wires the static shell to the REST API + SSE event stream.
 // All panel logic is delegated to ./panels/* modules.
 
+console.log("[bAInary] app.js loading (v20260708)");
+
 import { functionTree } from "./panels/functionTree.js";
 import { asmPanel } from "./panels/asm.js";
 import { codePanel } from "./panels/code.js";
@@ -119,8 +121,12 @@ function initResize() {
   });
 }
 
-window.addEventListener("DOMContentLoaded", () => {
-  initTopbar();
+// Module scripts are deferred by the browser — the DOM is already parsed
+// when this code runs. No need to wait for DOMContentLoaded; just execute.
+
+try {
+  console.log("[bAInary] initializing panels...");
+  // Skip dialog wiring — index.html inline script already handles it.
   initBottomTabs();
   initCodeTabs();
   initBusRouting();
@@ -133,6 +139,8 @@ window.addEventListener("DOMContentLoaded", () => {
   ragPanel.init(bus);
   stringsPanel.init(bus);
   hexPanel.init(bus);
+  console.log("[bAInary] all panels initialized");
+
   // Initial status pull.
   fetch("/api/binary").then(r => r.ok ? r.json() : null).then(info => {
     if (info && info.functions_count !== undefined) {
@@ -142,4 +150,8 @@ window.addEventListener("DOMContentLoaded", () => {
       stringsPanel.refresh(bus);
     }
   }).catch(() => {});
-});
+} catch (e) {
+  console.error("[bAInary] FATAL during init:", e);
+  const st = document.getElementById("lift-status");
+  if (st) st.textContent = `Error: ${e.message}`;
+}
