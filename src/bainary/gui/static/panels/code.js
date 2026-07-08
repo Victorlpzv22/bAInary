@@ -6,16 +6,23 @@ let _view = "original";
 let _current = { address: null, name: null, original: "", refined: "" };
 
 export async function init() {
-  const monaco = await import("monaco-editor");
-  _editor = monaco.editor.create(document.getElementById("code-body"), {
-    value: "",
-    language: "c",
-    readOnly: true,
-    theme: "vs-dark",
-    minimap: { enabled: false },
-    fontSize: 12,
-    automaticLayout: true,
-  });
+  try {
+    const monaco = await import("monaco-editor");
+    _editor = monaco.editor.create(document.getElementById("code-body"), {
+      value: "",
+      language: "c",
+      readOnly: true,
+      theme: "vs-dark",
+      minimap: { enabled: false },
+      fontSize: 12,
+      automaticLayout: true,
+    });
+  } catch (e) {
+    const el = document.getElementById("code-body");
+    if (el) el.textContent = `Monaco no cargó: ${e.message}\n¿Internet disponible?`;
+    console.error("[bAInary] code Monaco init error:", e);
+    throw e;
+  }
 }
 
 export async function load(bus, address, name) {

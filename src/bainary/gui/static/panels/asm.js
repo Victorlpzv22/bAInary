@@ -5,19 +5,26 @@ let _currentAddr = null;
 
 export async function init() {
   // Lazy-load Monaco to keep initial page weight small.
-  const monaco = await import("monaco-editor");
-  _editor = monaco.editor.create(document.getElementById("asm-body"), {
-    value: "",
-    language: "asm",
-    readOnly: true,
-    theme: "vs-dark",
-    minimap: { enabled: false },
-    fontSize: 12,
-    automaticLayout: true,
-    wordWrap: "off",
-    scrollBeyondLastLine: false,
-  });
-  window.monaco = monaco; // expose for diff editor
+  try {
+    const monaco = await import("monaco-editor");
+    _editor = monaco.editor.create(document.getElementById("asm-body"), {
+      value: "",
+      language: "asm",
+      readOnly: true,
+      theme: "vs-dark",
+      minimap: { enabled: false },
+      fontSize: 12,
+      automaticLayout: true,
+      wordWrap: "off",
+      scrollBeyondLastLine: false,
+    });
+    window.monaco = monaco; // expose for diff editor
+  } catch (e) {
+    const el = document.getElementById("asm-body");
+    if (el) el.textContent = `Monaco no cargó: ${e.message}\n¿Internet disponible?`;
+    console.error("[bAInary] asm Monaco init error:", e);
+    throw e;
+  }
 }
 
 export async function load(bus, address) {
