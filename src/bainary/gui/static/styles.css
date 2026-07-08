@@ -90,7 +90,7 @@ body {
   color: var(--fg-dim);
 }
 .pane-header .spacer { flex: 1; }
-.pane-body { flex: 1; min-height: 0; position: relative; overflow: hidden; contain: strict; }
+.pane-body { flex: 1; min-height: 0; position: relative; overflow: hidden; }
 .tabs { display: flex; gap: 4px; }
 .tab {
   padding: 2px 10px;
