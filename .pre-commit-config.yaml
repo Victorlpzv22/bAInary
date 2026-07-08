@@ -25,6 +25,11 @@ repos:
           - pydantic>=2.6
           - networkx>=3.2
           - types-PyYAML
+          - fastapi>=0.110
+          - uvicorn>=0.30
+          - sse-starlette>=1.8
+          - python-multipart>=0.0.9
+          - python-dotenv>=1.0
 
   - repo: local
     hooks:

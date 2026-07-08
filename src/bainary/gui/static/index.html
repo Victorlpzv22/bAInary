@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>bAInary</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <script type="importmap">
+  {
+    "imports": {
+      "monaco-editor": "https://esm.sh/monaco-editor@0.50.0/min/vs/editor/editor.api.js",
+      "vis-network": "https://esm.sh/vis-network@9.1.9/peer/umd/vis-network.min.js"
+    }
+  }
+  </script>
+</head>
+<body>
+  <header id="topbar" class="topbar">
+    <span class="logo">bAInary</span>
+    <button id="open-binary" type="button">Abrir binario</button>
+    <button id="toggle-hex" type="button" title="Alternar panel Hex (oculto por defecto)">Hex off</button>
+    <span id="lift-status" class="status">sin cargar</span>
+    <span class="spacer"></span>
+    <button id="open-settings" type="button" title="Ajustes del servidor">Settings</button>
+  </header>
+
+  <div id="grid" class="grid">
+    <aside id="sidebar" class="sidebar" data-panel="sidebar">
+      <input id="function-filter" type="search" placeholder="filter" autocomplete="off">
+      <ul id="function-list" class="function-list" aria-label="Functions"></ul>
+    </aside>
+
+    <main id="workspace" class="workspace">
+      <section id="asm-pane" class="pane" data-panel="asm">
+        <div class="pane-header">ASM</div>
+        <div class="pane-body" id="asm-body"></div>
+      </section>
+      <section id="code-pane" class="pane" data-panel="code">
+        <div class="pane-header">
+          <span>Codigo</span>
+          <div class="tabs" role="tablist">
+            <button class="tab" data-tab="original" aria-selected="true">Original</button>
+            <button class="tab" data-tab="refined">Refinado</button>
+            <button class="tab" data-tab="diff">Diff</button>
+          </div>
+          <div class="pane-actions">
+            <button id="refine-one" type="button" disabled>Refinar</button>
+            <button id="refine-all" type="button" disabled>Refinar todo</button>
+          </div>
+        </div>
+        <div class="pane-body" id="code-body"></div>
+      </section>
+    </main>
+
+    <aside id="graph-panel" class="graph-panel" data-panel="graph">
+      <div class="pane-header">
+        <span>Grafo</span>
+        <label class="hops">hops <input id="hops" type="range" min="1" max="3" value="1"></label>
+      </div>
+      <div class="pane-body" id="graph-body"></div>
+    </aside>
+
+    <footer id="bottom-panel" class="bottom-panel">
+      <div class="tabs" role="tablist" id="bottom-tabs">
+        <button class="tab" data-tab="console" aria-selected="true">Console</button>
+        <button class="tab" data-tab="imports">Imports</button>
+        <button class="tab" data-tab="exports">Exports</button>
+        <button class="tab" data-tab="strings">Strings</button>
+        <button class="tab" data-tab="rag">RAG search</button>
+      </div>
+      <div class="tab-bodies">
+        <div class="tab-body" data-tab="console" data-active="true">
+          <pre id="console-log" class="console-log"></pre>
+        </div>
+        <div class="tab-body" data-tab="imports" hidden>
+          <input type="search" placeholder="filter" data-filter="imports" autocomplete="off">
+          <table class="meta-table" id="imports-table"></table>
+        </div>
+        <div class="tab-body" data-tab="exports" hidden>
+          <input type="search" placeholder="filter" data-filter="exports" autocomplete="off">
+          <table class="meta-table" id="exports-table"></table>
+        </div>
+        <div class="tab-body" data-tab="strings" hidden>
+          <input type="search" placeholder="filter" data-filter="strings" autocomplete="off">
+          <table class="meta-table" id="strings-table"></table>
+        </div>
+        <div class="tab-body" data-tab="rag" hidden>
+          <div class="rag-controls">
+            <button id="rag-build" type="button">Construir indice</button>
+            <input id="rag-query" type="search" placeholder="buscar..." autocomplete="off">
+            <button id="rag-search" type="button" disabled>Buscar</button>
+          </div>
+          <ul id="rag-results" class="rag-results"></ul>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <div id="hex-overlay" class="hex-overlay" hidden>
+    <div class="hex-window">
+      <div class="hex-header">
+        <span>Hex</span>
+        <input id="hex-goto" type="text" placeholder="0x401000" pattern="^0x[0-9a-fA-F]+$">
+        <button id="hex-close" type="button">cerrar</button>
+      </div>
+      <pre id="hex-body" class="hex-body"></pre>
+    </div>
+  </div>
+
+  <dialog id="dialog-open">
+    <form method="dialog">
+      <h2>Abrir binario</h2>
+      <label><input type="radio" name="src" value="upload" checked> Subir fichero</label>
+      <input type="file" id="open-file">
+      <label><input type="radio" name="src" value="path"> Ruta local</label>
+      <input type="text" id="open-path" placeholder="/ruta/al/elf.exe" disabled>
+      <label>Backend
+        <select id="open-backend">
+          <option value="lief_capstone">lief_capstone (rapido, sin Ghidra)</option>
+          <option value="ghidra_headless">ghidra_headless (lento, completo)</option>
+        </select>
+      </label>
+      <menu>
+        <button value="cancel" type="reset">Cancelar</button>
+        <button id="open-submit" value="ok" type="button">Lift</button>
+      </menu>
+      <p id="open-error" class="dialog-error" hidden></p>
+    </form>
+  </dialog>
+
+  <dialog id="dialog-settings">
+    <form method="dialog">
+      <h2>Settings</h2>
+      <label>Provider <input id="set-provider"></label>
+      <label>API key <input id="set-key" type="password" placeholder="(no change)"></label>
+      <label>Model <input id="set-model"></label>
+      <label>Base URL <input id="set-url"></label>
+      <label>Lift backend <input id="set-lift"></label>
+      <p class="hint">El API key se enmascara al guardar. Reinicia el server para aplicar cambios de lift_backend.</p>
+      <menu>
+        <button value="cancel" type="reset">Cancelar</button>
+        <button id="settings-save" value="ok" type="button">Guardar</button>
+      </menu>
+      <p id="settings-error" class="dialog-error" hidden></p>
+    </form>
+  </dialog>
+
+  <script type="module" src="/static/app.js"></script>
+</body>
+</html>

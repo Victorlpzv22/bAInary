@@ -61,6 +61,10 @@ disable_error_code = "untyped-decorator"
 module = "bainary.rag.cli"
 disable_error_code = "untyped-decorator"
 
+[[tool.mypy.overrides]]
+module = "bainary.gui"
+disable_error_code = "untyped-decorator"
+
 # TODO(Task 5): remove once bainary.refine.refiner exists.
 [[tool.mypy.overrides]]
 module = ["bainary.refine.refiner"]
