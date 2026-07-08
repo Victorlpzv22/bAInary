@@ -39,6 +39,7 @@ export async function focus(bus, address) {
 
 async function _render(graph, highlightAddr) {
   const vis = await import("vis-network");
+  const { DataSet } = await import("vis-data");
   const nodes = graph.nodes.map(n => ({
     id: n.id,
     label: n.name,
@@ -50,7 +51,7 @@ async function _render(graph, highlightAddr) {
     margin: 4,
   }));
   const edges = graph.edges.map(([from, to]) => ({ from, to, arrows: "to", color: "#5a5a5a" }));
-  const data = { nodes: new vis.DataSet(nodes), edges: new vis.DataSet(edges) };
+  const data = { nodes: new DataSet(nodes), edges: new DataSet(edges) };
   if (!_network) {
     _network = new vis.Network(_container, data, {
       layout: { hierarchical: { enabled: false } },
