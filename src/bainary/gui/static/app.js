@@ -4,14 +4,16 @@
 
 console.log("[bAInary] app.js loading (v20260708)");
 
-import { functionTree } from "./panels/functionTree.js";
-import { asmPanel } from "./panels/asm.js";
-import { codePanel } from "./panels/code.js";
-import { graphPanel } from "./panels/graph.js";
-import { ragPanel } from "./panels/rag.js";
-import { stringsPanel } from "./panels/strings.js";
-import { consolePanel } from "./panels/console.js";
-import { hexPanel } from "./panels/hex.js";
+// Import each panel's namespace as an object so `panel.init(bus)` works
+// even though the modules export named functions (init, refresh, ...).
+import * as functionTree from "./panels/functionTree.js";
+import * as asmPanel from "./panels/asm.js";
+import * as codePanel from "./panels/code.js";
+import * as graphPanel from "./panels/graph.js";
+import * as ragPanel from "./panels/rag.js";
+import * as stringsPanel from "./panels/strings.js";
+import * as consolePanel from "./panels/console.js";
+import * as hexPanel from "./panels/hex.js";
 import { settingsPanel, openBinaryPanel } from "./panels/dialogs.js";
 
 const bus = new EventTarget();
