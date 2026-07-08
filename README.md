@@ -8,10 +8,7 @@ AI-assisted reverse engineering of compiled binaries.
 - **Subsystem B — Call graph** (`bainary.graph`). Build a `networkx.DiGraph` from any `BinaryArtifact`. Query callers, callees (direct or transitive), orphans, cycles (SCCs), and shortest paths. Serialize to GraphML (interchange) or pickle (lossless). Hybrid API: ergonomic methods + raw `cg.graph` access.
 - **Subsystem D — LLM refinement** (`bainary.refine`). Send decompiled pseudo-C to an LLM and get back cleaned-up code with meaningful variable names, removed warnings, and one-line comments. Multi-provider: OpenAI, Anthropic, OpenCode Go (GLM-5.2, Kimi K2.7 Code, DeepSeek V4, MiniMax M3, etc.). Cache prevents duplicate LLM calls. Filters for thunks, empty functions, and size. A `bainary-refine` package, not just a script.
 - **Subsystem C — Cross-binary function search** (`bainary.rag`). Index every function in a `BinaryArtifact` and search for similar functions across a multi-binary corpus. Vectorization is local (hashing trick over n-gram tokens, no model, no API key, no network) and pluggable via `TextualVectorizer`. Pluggable vector store (NumPy + JSON MVP, ChromaDB/LanceDB/sqlite-vec/FAISS future). Pseudocode-first text with ASM fallback.
-
-## What's not done yet
-
-- **E — GUI.** Side-by-side Hex/ASM vs. reconstructed code view.
+- **Subsystem E — Web GUI** (`bainary.gui`, optional `pip install '.[gui]'`). Local web app at `127.0.0.1:8787` driven by `bainary-gui`. Monaco editor for ASM + pseudo-C (Original / Refinado / Diff), vis-network for the call graph, SSE for live lift/refine progress, and a RAG search panel — all behind a single `ArtifactSession`. Subsystems A, B, C, D are exposed as a JSON REST API under `/api/*`.
 
 ## Install
 
@@ -20,7 +17,8 @@ git clone <repo> bainary
 cd bainary
 python -m venv .venv
 source .venv/bin/activate
-pip install -e ".[dev]"
+pip install -e ".[dev]"          # CLI + tests
+pip install -e ".[gui]"          # optional: web GUI (bainary-gui)
 ```
 
 ## Requirements
@@ -45,6 +43,10 @@ bainary-lift path/to/target.elf -o target.json --verbose -v     # debug logging
 
 # Use the fast backend (no Ghidra needed, no pseudo-C):
 bainary-lift path/to/target.elf -o target.json --backend lief_capstone
+
+# Web GUI (subsystem E)
+bainary-gui                                       # opens http://127.0.0.1:8787
+bainary-gui --port 9000 --no-browser              # headless / custom port
 ```
 
 ## Library usage
@@ -141,6 +143,22 @@ removed = idx.remove_artifact(artifact.binary.sha256)
 
 No embedding model is used. Vectorization is local (hashing trick over C-like tokens + 2-grams), deterministic, and runs in microseconds. Cosine similarity ranks hits.
 
+### Subsystem E — Web GUI
+
+```bash
+pip install -e ".[gui]"
+bainary-gui                          # → http://127.0.0.1:8787
+```
+
+Layout: function-tree sidebar, Monaco ASM + Code panels (Original /
+Refinado / Diff), vis-network call graph with N-hop focus, and a
+bottom panel for the SSE console, imports/exports/strings, and a RAG
+search. `Settings` dialog persists to `.env` (key masked on read);
+switching `LIFT_BACKEND` requires a server restart. All 5 subsystems
+are exposed as JSON under `/api/*`; see
+[Subsystem-E-GUI](docs/wiki/Subsystem-E-GUI.md) for the full endpoint
+table.
+
 ## Building test fixtures
 
 ```bash
@@ -162,7 +180,7 @@ pytest
 pytest tests/test_snapshot.py --update-snapshots -m slow
 ```
 
-157 tests total: 150 pass in the fast lane, 7 more (integration + snapshot) run when Ghidra is available.
+286 tests total, all run in the fast lane (no slow marker needed for the GUI).
 
 ## Cache
 
@@ -184,6 +202,7 @@ Full documentation is in `docs/wiki/`:
 - [Subsystem B](docs/wiki/Subsystem-B-Graph.md) — graph
 - [Subsystem D](docs/wiki/Subsystem-D-Refine.md) — refine
 - [Subsystem C](docs/wiki/Subsystem-C-RAG.md) — rag
+- [Subsystem E](docs/wiki/Subsystem-E-GUI.md) — web GUI
 - [CLI reference](docs/wiki/CLI-Reference.md)
 - [Development guide](docs/wiki/Development-Guide.md)
 - [Examples](docs/wiki/Examples.md)

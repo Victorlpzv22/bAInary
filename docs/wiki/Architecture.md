@@ -9,10 +9,10 @@ High-level design of the bAInary platform.
 │                         bAInary Platform                             │
 ├─────────────┬───────────────┬───────────────┬───────────────┬────────┤
 │  A: Lift    │  B: Graph     │  C: Search    │  D: Refine    │ E:GUI  │
-│              │               │               │               │(future)│
-│ parse        │ NetworkX      │ textual       │ LLM clients   │        │
-│ decompile    │ queries       │ vectorizer    │ cache         │        │
-│ cache        │ serialization │ vector store  │ multi-provider│        │
+│              │               │               │               │        │
+│ parse        │ NetworkX      │ textual       │ LLM clients   │FastAPI │
+│ decompile    │ queries       │ vectorizer    │ cache         │+Monaco │
+│ cache        │ serialization │ vector store  │ multi-provider│+SSE    │
 │              │               │ cross-binary  │               │        │
 ├──────┬───────┴──────┬────────┴───────┬───────┴───────┬───────┴────────┤
 │   ghidra_headless  │  lief_capstone  │ numpy, mock   │ openai,        │
@@ -66,6 +66,12 @@ Binary (.exe, .elf, .macho)
 └────────┬──────────┘
          │ BinaryArtifact (refined pseudo-C)
          ▼
+┌───────────────────┐
+│  E: GUI            │  FastAPI + Monaco + vis-network + SSE
+│  bainary.gui       │  (browser at 127.0.0.1:8787)
+└────────┬──────────┘
+         │
+         ▼
     Output: refined decompilation
 ```
 
@@ -109,6 +115,27 @@ src/bainary/
     ├── cache.py       #    RefinementCache
     ├── __init__.py    #    re-exports
     └── errors.py      #    RefineError
+
+gui/                # Subsystem E (optional: pip install '.[gui]')
+├── server.py       #    FastAPI app factory + static mount
+├── sse.py          #    SSEBroker (in-process pub/sub)
+├── config.py       #    load_env / save_env / mask_key
+├── state.py        #    ArtifactSession + JobStatus
+├── errors.py       #    GuiError
+├── __main__.py     #    bainary-gui CLI
+├── routes/
+│   ├── binary.py   #    /api/lift/{path,upload}, /api/binary, /api/hex, /api/functions
+│   ├── functions.py #   /api/functions/{addr}/{callees,callers}
+│   ├── graph.py    #    /api/graph, /api/graph/focus/{addr}
+│   ├── refine.py   #    /api/refine, /api/refine/result/{addr}, /api/events (SSE)
+│   ├── rag.py      #    /api/rag/{build,search,similar}
+│   ├── settings.py #    /api/settings (GET/PUT .env)
+│   └── meta.py     #    /api/{imports,exports,strings}
+└── static/
+    ├── index.html  #    SPA shell (topbar, grid, dialogs)
+    ├── styles.css  #    dark theme, monospace
+    ├── app.js      #    bootstrap, bus router, SSE subscribe
+    └── panels/     #    functionTree, asm, code, graph, rag, strings, console, hex, dialogs
 ```
 
 ## Exception hierarchy
@@ -119,7 +146,8 @@ BainaryError                      (lift/errors.py)
 ├── SchemaValidationError          (JSON validation)
 ├── GraphError                     (graph/errors.py)
 ├── RagError                       (rag/errors.py)
-└── RefineError                    (refine/errors.py)
+├── RefineError                    (refine/errors.py)
+└── GuiError                       (gui/errors.py — optional subsystem)
 ```
 
 ## Dependencies
@@ -143,4 +171,11 @@ Dev:
     ruff
     mypy
     pre-commit
+
+GUI (optional extra `[gui]`):
+    fastapi>=0.110
+    uvicorn>=0.30
+    sse-starlette>=1.8
+    python-multipart>=0.0.9
+    python-dotenv>=1.0
 ```
