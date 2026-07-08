@@ -105,21 +105,10 @@ function initBusRouting() {
   });
   bus.addEventListener("lift.done", (e) => {
     const summary = e.detail;
-    $("#lift-status").textContent = `${summary.functions_count} fn`;
+    $("#lift-status").textContent = "lift done";
     functionTree.refresh(bus);
     graphPanel.refresh(bus);
     stringsPanel.refresh(bus);
-    // Auto-select the first function so ASM/code panels show content.
-    setTimeout(async () => {
-      const list = document.querySelectorAll("#function-list li");
-      if (list.length > 0) {
-        list[0].classList.add("active");
-        const fn = await fetch("/api/functions").then(r => r.ok ? r.json() : []).catch(() => []);
-        if (fn.length > 0) {
-          bus.dispatchEvent(new CustomEvent("function:selected", { detail: fn[0] }));
-        }
-      }
-    }, 100);
   });
   bus.addEventListener("lift.error", (e) => {
     $("#lift-status").textContent = "lift error";

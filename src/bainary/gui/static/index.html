@@ -231,8 +231,10 @@
       }
     }
 
-    // Load a function's ASM + code into the panels (fallback when app.js isn't loaded).
-    async function _selectFunction(fn) {
+    // Select a function in the sidebar and notify app.js (if loaded).
+    // Does NOT write to panel divs — app.js owns Monaco. This avoids
+    // duplicate fetches and DOM conflicts between inline and module code.
+    function _selectFunction(fn) {
       // Highlight in sidebar
       document.querySelectorAll("#function-list li.active").forEach(el => el.classList.remove("active"));
       const items = document.querySelectorAll("#function-list li");
@@ -243,29 +245,22 @@
           break;
         }
       }
-      // Tell app.js bus (if loaded)
+      // Tell app.js bus (if loaded) to load ASM + code into Monaco.
       window.dispatchEvent(new CustomEvent("__bainary-function-selected", { detail: fn }));
-      // Fallback: fetch function detail and display in panels directly.
-      try {
-        const r = await fetch("/api/functions/" + encodeURIComponent(fn.address));
-        if (!r.ok) return;
-        const f = await r.json();
-        // ASM panel: put text directly in the div if Monaco isn't ready.
+      // Fallback (3s delay): if Monaco never showed up, display raw text.
+      setTimeout(() => {
         const asmDiv = document.getElementById("asm-body");
-        if (asmDiv && !asmDiv.querySelector(".monaco-editor")) {
-          asmDiv.innerHTML = '<pre style="padding:8px;font-size:12px;white-space:pre;overflow:auto;height:100%;margin:0;">' +
-            (f.assembly || "// sin ASM").replace(/</g, "&lt;") + '</pre>';
+        if (asmDiv && !asmDiv.querySelector(".monaco-editor") && asmDiv.children.length === 0) {
+          asmDiv.innerHTML = '<pre style="padding:8px;font-size:12px;white-space:pre;overflow:auto;height:100%;margin:0;color:#d4d4d4;">' +
+            "// Monaco no cargo. Pulsa F12 para ver errores.\n" +
+            "// Funcion: " + fn.name + " @ " + fn.address + "</pre>";
         }
-        // Code panel: show pseudocode (may be empty with lief_capstone)
         const codeDiv = document.getElementById("code-body");
-        if (codeDiv && !codeDiv.querySelector(".monaco-editor")) {
-          const txt = (f.pseudocode || "// sin pseudocodigo (usa ghidra_headless para decompilar)");
+        if (codeDiv && !codeDiv.querySelector(".monaco-editor") && codeDiv.children.length === 0) {
           codeDiv.innerHTML = '<pre style="padding:8px;font-size:12px;white-space:pre;overflow:auto;height:100%;margin:0;color:#d4d4d4;">' +
-            txt.replace(/</g, "&lt;") + '</pre>';
+            "// Monaco no cargo. Usar ghidra_headless para pseudocodigo C.</pre>";
         }
-      } catch (e) {
-        console.error("[bAInary] selectFunction:", e);
-      }
+      }, 3000);
     }
 
     function _wireOpenDialog() {
@@ -407,6 +402,6 @@
       document.addEventListener("DOMContentLoaded", _wireOpenDialog);
     }
   </script>
-  <script type="module" src="/static/app.js?v=20260708f"></script>
+  <script type="module" src="/static/app.js?v=20260708g"></script>
 </body>
 </html>
