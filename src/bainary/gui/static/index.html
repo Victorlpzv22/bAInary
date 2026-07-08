@@ -159,6 +159,115 @@
       if (st) st.textContent = "JS error: " + e.message;
     });
 
+    // Poll a background job until done/error, then refresh the UI.
+    async function _pollJob(jobId) {
+      const st = document.getElementById("lift-status");
+      let attempts = 0;
+      const maxAttempts = 600; // 60s @ 100ms
+      while (attempts < maxAttempts) {
+        try {
+          const r = await fetch("/api/jobs/" + jobId);
+          if (r.ok) {
+            const j = await r.json();
+            if (j.status === "done") {
+              if (st) st.textContent = "lift done";
+              // Tell app.js bus (if loaded) about the lift completion.
+              window.dispatchEvent(new CustomEvent("__bainary-lift-done", { detail: j }));
+              // Fallback: directly refresh the sidebar + graph if app.js isn't loaded.
+              _refreshAfterLift();
+              return;
+            }
+            if (j.status === "error") {
+              if (st) st.textContent = "lift error";
+              const log = (j.log_lines || []).join("\n");
+              if (log) console.error("[bAInary] lift logs:", log);
+              return;
+            }
+            if (st) st.textContent = "lifting " + j.kind + " ...";
+          }
+        } catch (e) { /* retry */ }
+        await new Promise(r => setTimeout(r, 200));
+        attempts++;
+      }
+      if (st) st.textContent = "lift timeout";
+    }
+
+    // Fallback refresh: fetch functions + binary info and update DOM directly.
+    // This works even if app.js (module) failed to load.
+    async function _refreshAfterLift() {
+      try {
+        const r = await fetch("/api/binary");
+        if (!r.ok) return;
+        const info = await r.json();
+        const st = document.getElementById("lift-status");
+        if (st) st.textContent = (info.functions_count || 0) + " fn";
+        // Populate function list
+        const fr = await fetch("/api/functions");
+        if (!fr.ok) return;
+        const fns = await fr.json();
+        const ul = document.getElementById("function-list");
+        if (ul) {
+          ul.innerHTML = "";
+          for (const fn of fns.slice(0, 500)) {
+            const li = document.createElement("li");
+            if (fn.is_thunk || fn.is_extern) li.className = "thunk";
+            const name = document.createElement("span");
+            name.className = "name";
+            name.textContent = fn.name;
+            const addr = document.createElement("span");
+            addr.className = "addr";
+            addr.textContent = fn.address;
+            li.append(name, addr);
+            li.addEventListener("click", () => _selectFunction(fn));
+            ul.appendChild(li);
+          }
+        }
+        // Auto-select first function so ASM/code panels load.
+        if (fns.length > 0) _selectFunction(fns[0]);
+        // Dispatch event for app.js SSE handler (if loaded)
+        window.dispatchEvent(new CustomEvent("__bainary-refresh", {}));
+      } catch (e) {
+        console.error("[bAInary] refresh after lift:", e);
+      }
+    }
+
+    // Load a function's ASM + code into the panels (fallback when app.js isn't loaded).
+    async function _selectFunction(fn) {
+      // Highlight in sidebar
+      document.querySelectorAll("#function-list li.active").forEach(el => el.classList.remove("active"));
+      const items = document.querySelectorAll("#function-list li");
+      for (const li of items) {
+        if (li.querySelector(".name")?.textContent === fn.name &&
+            li.querySelector(".addr")?.textContent === fn.address) {
+          li.classList.add("active");
+          break;
+        }
+      }
+      // Tell app.js bus (if loaded)
+      window.dispatchEvent(new CustomEvent("__bainary-function-selected", { detail: fn }));
+      // Fallback: fetch function detail and display in panels directly.
+      try {
+        const r = await fetch("/api/functions/" + encodeURIComponent(fn.address));
+        if (!r.ok) return;
+        const f = await r.json();
+        // ASM panel: put text directly in the div if Monaco isn't ready.
+        const asmDiv = document.getElementById("asm-body");
+        if (asmDiv && !asmDiv.querySelector(".monaco-editor")) {
+          asmDiv.innerHTML = '<pre style="padding:8px;font-size:12px;white-space:pre;overflow:auto;height:100%;margin:0;">' +
+            (f.assembly || "// sin ASM").replace(/</g, "&lt;") + '</pre>';
+        }
+        // Code panel: show pseudocode (may be empty with lief_capstone)
+        const codeDiv = document.getElementById("code-body");
+        if (codeDiv && !codeDiv.querySelector(".monaco-editor")) {
+          const txt = (f.pseudocode || "// sin pseudocodigo (usa ghidra_headless para decompilar)");
+          codeDiv.innerHTML = '<pre style="padding:8px;font-size:12px;white-space:pre;overflow:auto;height:100%;margin:0;color:#d4d4d4;">' +
+            txt.replace(/</g, "&lt;") + '</pre>';
+        }
+      } catch (e) {
+        console.error("[bAInary] selectFunction:", e);
+      }
+    }
+
     function _wireOpenDialog() {
       // "Abrir binario" button → open dialog
       const btnOpen = document.getElementById("open-binary");
@@ -226,8 +335,10 @@
             }
             const j = await r.json();
             const st = document.getElementById("lift-status");
-            if (st) st.textContent = "lifting " + (j.job_id || "...");
+            if (st) st.textContent = "lifting ...";
             document.getElementById("dialog-open").close();
+            // Poll the job until done, then refresh the UI.
+            _pollJob(j.job_id);
           } catch (e) {
             if (errEl) { errEl.textContent = e.message; errEl.hidden = false; }
             console.error("[bAInary] lift error:", e);
@@ -296,6 +407,6 @@
       document.addEventListener("DOMContentLoaded", _wireOpenDialog);
     }
   </script>
-  <script type="module" src="/static/app.js?v=20260708e"></script>
+  <script type="module" src="/static/app.js?v=20260708f"></script>
 </body>
 </html>

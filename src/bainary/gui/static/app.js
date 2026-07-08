@@ -21,12 +21,23 @@ const bus = new EventTarget();
 function $(sel) { return document.querySelector(sel); }
 function $$(sel) { return Array.from(document.querySelectorAll(sel)); }
 
-// Bridge the few window-scoped CustomEvents that dialogs publish (they live
-// outside the bus because they are wired before the bus is ready in some
-// ordering cases).
+// Bridge the few window-scoped CustomEvents that the inline script in
+// index.html publishes (it runs independently of app.js to guarantee the
+// dialog works even if module loading fails).
 function bridgeWindowEvents() {
   window.addEventListener("__bainary-log", (e) => {
     bus.dispatchEvent(new CustomEvent("log", { detail: e.detail }));
+  });
+  window.addEventListener("__bainary-lift-done", (e) => {
+    bus.dispatchEvent(new CustomEvent("lift.done", { detail: e.detail || {} }));
+  });
+  window.addEventListener("__bainary-function-selected", (e) => {
+    bus.dispatchEvent(new CustomEvent("function:selected", { detail: e.detail }));
+  });
+  window.addEventListener("__bainary-refresh", () => {
+    functionTree.refresh(bus);
+    graphPanel.refresh(bus);
+    stringsPanel.refresh(bus);
   });
 }
 
@@ -92,12 +103,27 @@ function initBusRouting() {
     graphPanel.focus(bus, address);
     $("#refine-one").disabled = false;
   });
-  bus.addEventListener("lift:done", (e) => {
+  bus.addEventListener("lift.done", (e) => {
     const summary = e.detail;
     $("#lift-status").textContent = `${summary.functions_count} fn`;
     functionTree.refresh(bus);
     graphPanel.refresh(bus);
     stringsPanel.refresh(bus);
+    // Auto-select the first function so ASM/code panels show content.
+    setTimeout(async () => {
+      const list = document.querySelectorAll("#function-list li");
+      if (list.length > 0) {
+        list[0].classList.add("active");
+        const fn = await fetch("/api/functions").then(r => r.ok ? r.json() : []).catch(() => []);
+        if (fn.length > 0) {
+          bus.dispatchEvent(new CustomEvent("function:selected", { detail: fn[0] }));
+        }
+      }
+    }, 100);
+  });
+  bus.addEventListener("lift.error", (e) => {
+    $("#lift-status").textContent = "lift error";
+    console.error("[bAInary] lift error:", e.detail);
   });
 }
 
