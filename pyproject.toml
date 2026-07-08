@@ -27,10 +27,18 @@ dev = [
     "ruff>=0.4",
     "mypy>=1.10",
 ]
+gui = [
+    "fastapi>=0.110",
+    "uvicorn>=0.30",
+    "sse-starlette>=1.8",
+    "python-multipart>=0.0.9",
+    "python-dotenv>=1.0",
+]
 
 [project.scripts]
 bainary-lift = "bainary.lift.cli:app"
 bainary-rag = "bainary.rag.cli:app"
+bainary-gui = "bainary.gui.__main__:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/bainary"]
