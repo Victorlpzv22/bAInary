@@ -14,7 +14,6 @@ import * as ragPanel from "./panels/rag.js";
 import * as stringsPanel from "./panels/strings.js";
 import * as consolePanel from "./panels/console.js";
 import * as hexPanel from "./panels/hex.js";
-import { settingsPanel, openBinaryPanel } from "./panels/dialogs.js";
 
 const bus = new EventTarget();
 
@@ -28,16 +27,22 @@ function bridgeWindowEvents() {
   window.addEventListener("__bainary-log", (e) => {
     bus.dispatchEvent(new CustomEvent("log", { detail: e.detail }));
   });
-  window.addEventListener("__bainary-lift-done", (e) => {
-    bus.dispatchEvent(new CustomEvent("lift.done", { detail: e.detail || {} }));
-  });
-  window.addEventListener("__bainary-function-selected", (e) => {
-    bus.dispatchEvent(new CustomEvent("function:selected", { detail: e.detail }));
-  });
-  window.addEventListener("__bainary-refresh", () => {
-    functionTree.refresh(bus);
+  window.addEventListener("__bainary-lift-done", async (e) => {
+    // Refresh all panels, then auto-select the first function.
+    await functionTree.refresh(bus);
     graphPanel.refresh(bus);
     stringsPanel.refresh(bus);
+    try {
+      const r = await fetch("/api/functions");
+      if (r.ok) {
+        const fns = await r.json();
+        if (fns.length > 0) {
+          bus.dispatchEvent(new CustomEvent("function:selected", { detail: fns[0] }));
+        }
+      }
+    } catch (e) {
+      console.error("[bAInary] auto-select after lift:", e);
+    }
   });
 }
 
@@ -58,12 +63,9 @@ function startSSE() {
   };
 }
 
-// Topbar button wiring.
-function initTopbar() {
-  $("#open-binary").addEventListener("click", () => openBinaryPanel.show());
-  $("#open-settings").addEventListener("click", () => settingsPanel.show());
-  $("#toggle-hex").addEventListener("click", () => hexPanel.toggle());
-}
+// Topbar buttons (open-binary, open-settings, toggle-hex) are wired by
+// the inline script in index.html. Here we only wire the hex toggle
+// (it needs the hexPanel module which the inline script can't import).
 
 // Bottom-panel tab switcher.
 function initBottomTabs() {
@@ -102,13 +104,6 @@ function initBusRouting() {
     codePanel.load(bus, address, name);
     graphPanel.focus(bus, address);
     $("#refine-one").disabled = false;
-  });
-  bus.addEventListener("lift.done", (e) => {
-    const summary = e.detail;
-    $("#lift-status").textContent = "lift done";
-    functionTree.refresh(bus);
-    graphPanel.refresh(bus);
-    stringsPanel.refresh(bus);
   });
   bus.addEventListener("lift.error", (e) => {
     $("#lift-status").textContent = "lift error";
@@ -156,6 +151,9 @@ try {
   ragPanel.init(bus);
   stringsPanel.init(bus);
   hexPanel.init(bus);
+  // Wire the hex toggle (needs hexPanel module).
+  const hexBtn = document.getElementById("toggle-hex");
+  if (hexBtn) hexBtn.addEventListener("click", () => hexPanel.toggle());
   console.log("[bAInary] all panels initialized");
 
   // Initial status pull.
